@@ -1,0 +1,1887 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="nebula">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COSMOS-DB // Orbital Telemetry & Relational Database</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alasql@4.4.0/dist/alasql.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Orbitron', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root,
+        [data-theme="nebula"] {
+            --bg-main: #080212;
+            --bg-surface: rgba(16, 6, 32, 0.78);
+            --bg-card: rgba(14, 5, 29, 0.84);
+            --bg-stage: radial-gradient(circle at 50% 48%, rgba(168, 85, 247, 0.14) 0%, rgba(10, 3, 22, 0.96) 72%);
+            --text-primary: #faf5ff;
+            --text-secondary: #a78bfa;
+            --text-muted: #94a3b8;
+            --accent: #ec4899;
+            --accent-bright: #f472b6;
+            --accent-secondary: #a855f7;
+            --border-color: rgba(236, 72, 153, 0.24);
+            --border-highlight: rgba(244, 114, 182, 0.65);
+            --pill-active-bg: rgba(236, 72, 153, 0.16);
+            --grid-line: rgba(168, 85, 247, 0.06);
+            --spool-bg: #05010c;
+            --spool-text: #f5d0fe;
+        }
+
+        [data-theme="obsidian"] {
+            --bg-main: #030712;
+            --bg-surface: rgba(9, 16, 32, 0.80);
+            --bg-card: rgba(7, 13, 26, 0.86);
+            --bg-stage: radial-gradient(circle at 50% 48%, rgba(6, 182, 212, 0.13) 0%, rgba(3, 7, 18, 0.96) 72%);
+            --text-primary: #f8fafc;
+            --text-secondary: #38bdf8;
+            --text-muted: #94a3b8;
+            --accent: #06b6d4;
+            --accent-bright: #22d3ee;
+            --accent-secondary: #6366f1;
+            --border-color: rgba(34, 211, 238, 0.22);
+            --border-highlight: rgba(34, 211, 238, 0.65);
+            --pill-active-bg: rgba(6, 182, 212, 0.16);
+            --grid-line: rgba(34, 211, 238, 0.05);
+            --spool-bg: #02050b;
+            --spool-text: #cffafe;
+        }
+
+        [data-theme="solar"] {
+            --bg-main: #0c0502;
+            --bg-surface: rgba(24, 11, 6, 0.82);
+            --bg-card: rgba(19, 8, 4, 0.86);
+            --bg-stage: radial-gradient(circle at 50% 48%, rgba(245, 158, 11, 0.14) 0%, rgba(12, 5, 2, 0.96) 72%);
+            --text-primary: #fff7ed;
+            --text-secondary: #fbbf24;
+            --text-muted: #a8a29e;
+            --accent: #f59e0b;
+            --accent-bright: #fbbf24;
+            --accent-secondary: #ea580c;
+            --border-color: rgba(245, 158, 11, 0.24);
+            --border-highlight: rgba(251, 191, 36, 0.65);
+            --pill-active-bg: rgba(245, 158, 11, 0.16);
+            --grid-line: rgba(245, 158, 11, 0.05);
+            --spool-bg: #070301;
+            --spool-text: #fde68a;
+        }
+
+        [data-theme="starlight"] {
+            --bg-main: #f1f5f9;
+            --bg-surface: rgba(255, 255, 255, 0.90);
+            --bg-card: rgba(255, 255, 255, 0.94);
+            --bg-stage: radial-gradient(circle at 50% 48%, rgba(2, 132, 199, 0.12) 0%, rgba(15, 23, 42, 0.95) 75%);
+            --text-primary: #0f172a;
+            --text-secondary: #0284c7;
+            --text-muted: #64748b;
+            --accent: #0284c7;
+            --accent-bright: #0ea5e9;
+            --accent-secondary: #4f46e5;
+            --border-color: rgba(2, 132, 199, 0.24);
+            --border-highlight: rgba(2, 132, 199, 0.65);
+            --pill-active-bg: rgba(2, 132, 199, 0.12);
+            --grid-line: rgba(15, 23, 42, 0.05);
+            --spool-bg: #0f172a;
+            --spool-text: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .bg-grid-architectural {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background-image:
+                linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+                linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+            background-size: 46px 46px;
+            pointer-events: none;
+        }
+
+        .ui-surface {
+            background: var(--bg-surface);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+        }
+
+        .ui-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid var(--border-color);
+            transition: border-color 0.2s ease, transform 0.2s ease;
+        }
+
+        .ui-card:hover {
+            border-color: var(--border-highlight);
+        }
+
+        .observatory-stage {
+            background: var(--bg-stage);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 24px 60px -18px rgba(0, 0, 0, 0.7);
+        }
+
+        .pill-selected {
+            background: var(--pill-active-bg);
+            border: 1px solid var(--border-highlight);
+            color: var(--text-primary);
+        }
+
+        .text-accent {
+            color: var(--accent-bright);
+        }
+
+        .text-sub {
+            color: var(--text-secondary);
+        }
+
+        .btn-export {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%);
+            color: #ffffff;
+            font-weight: 600;
+            box-shadow: 0 4px 18px rgba(236, 72, 153, 0.28);
+        }
+
+        .btn-export:hover {
+            opacity: 0.94;
+        }
+
+        .tilt-interactive {
+            transition: transform 0.18s ease-out, border-color 0.2s ease;
+            will-change: transform;
+        }
+
+        /* Range Slider Styling */
+        input[type="range"].hud-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 5px;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.28);
+            outline: none;
+        }
+
+        input[type="range"].hud-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            border: 2px solid #ffffff;
+        }
+
+        .sqlplus-terminal {
+            background: var(--spool-bg);
+            color: var(--spool-text);
+            font-family: 'JetBrains Mono', monospace;
+            white-space: pre;
+            line-height: 1.45;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 9999px; }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col">
+    <div class="bg-grid-architectural"></div>
+
+    <!-- ============================================================================
+         TOP HEADER NAVBAR (MATCHING REFERENCE SCREENSHOT)
+         ============================================================================ -->
+    <header class="w-full border-b border-white/10 px-4 lg:px-8 py-3.5 sticky top-0 z-40 ui-surface">
+        <div class="max-w-[1520px] mx-auto flex flex-col gap-3">
+            <!-- Top Row: Brand on Left, 5-Item Navigation Pill Bar on Right -->
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <!-- Left Brand Emblem & Title -->
+                <div class="flex items-center gap-3.5">
+                    <div class="w-10 h-10 rounded-full border border-pink-400/50 bg-pink-500/15 flex items-center justify-center shadow-inner">
+                        <span class="w-4 h-4 rounded-full bg-pink-400/60"></span>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2.5">
+                            <span class="font-display font-bold text-lg sm:text-xl tracking-wider">COSMOS<span class="text-accent">-DB</span></span>
+                            <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full border border-pink-400/50 text-accent bg-pink-500/10">3NF SQL</span>
+                        </div>
+                        <p class="text-[11px] font-mono text-slate-400">Orbital Telemetry &amp; Relational Database</p>
+                    </div>
+                </div>
+
+                <!-- Right 5-Section Pill Navigation Bar -->
+                <nav class="ui-card rounded-full p-1.5 flex items-center gap-1 overflow-x-auto max-w-full">
+                    <button onclick="scrollToSection('sec-observatory', this)" class="nav-tab pill-selected px-4 py-1.5 rounded-full text-xs font-mono flex items-center gap-2 whitespace-nowrap transition">
+                        <i class="fa-solid fa-globe text-[11px] text-accent"></i>
+                        <span>3D Observatory</span>
+                    </button>
+                    <button onclick="scrollToSection('sec-catalog', this)" class="nav-tab px-4 py-1.5 rounded-full text-xs font-mono text-slate-300 hover:text-white flex items-center gap-2 whitespace-nowrap transition">
+                        <i class="fa-regular fa-compass text-[11px] text-sky-400"></i>
+                        <span>Celestial Catalog</span>
+                    </button>
+                    <button onclick="scrollToSection('sec-missions', this)" class="nav-tab px-4 py-1.5 rounded-full text-xs font-mono text-slate-300 hover:text-white flex items-center gap-2 whitespace-nowrap transition">
+                        <i class="fa-solid fa-shuttle-space text-[11px] text-purple-400"></i>
+                        <span>Space Missions</span>
+                    </button>
+                    <button onclick="scrollToSection('sec-pioneers', this)" class="nav-tab px-4 py-1.5 rounded-full text-xs font-mono text-slate-300 hover:text-white flex items-center gap-2 whitespace-nowrap transition">
+                        <i class="fa-solid fa-atom text-[11px] text-amber-400"></i>
+                        <span>Pioneers &amp; Laws</span>
+                    </button>
+                    <button onclick="scrollToSection('sec-studio', this)" class="nav-tab px-4 py-1.5 rounded-full text-xs font-mono text-slate-300 hover:text-white flex items-center gap-2 whitespace-nowrap transition">
+                        <i class="fa-solid fa-terminal text-[11px] text-emerald-400"></i>
+                        <span>SQL*Plus &amp; MySQL Studio</span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Second Row: Theme Selector Dots + Export .SQL Pill -->
+            <div class="flex items-center gap-3">
+                <div class="ui-card px-2.5 py-1.5 rounded-xl flex items-center gap-2" title="Switch Theme">
+                    <button onclick="setTheme('obsidian')" id="theme-obsidian" title="Deep Obsidian" class="w-5 h-5 rounded-md flex items-center justify-center hover:bg-white/10 transition">
+                        <span class="w-3 h-3 rounded-full bg-cyan-400"></span>
+                    </button>
+                    <button onclick="setTheme('solar')" id="theme-solar" title="Solar Flare" class="w-5 h-5 rounded-md flex items-center justify-center hover:bg-white/10 transition">
+                        <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                    </button>
+                    <button onclick="setTheme('nebula')" id="theme-nebula" title="Nebula Violet" class="w-5 h-5 rounded-md ring-1 ring-pink-400 bg-pink-500/20 flex items-center justify-center transition">
+                        <span class="w-3 h-3 rounded-full bg-pink-400"></span>
+                    </button>
+                    <button onclick="setTheme('starlight')" id="theme-starlight" title="Starlight Day" class="w-5 h-5 rounded-md flex items-center justify-center hover:bg-white/10 transition">
+                        <span class="w-3 h-3 rounded-full bg-sky-300 border border-slate-400"></span>
+                    </button>
+                </div>
+
+                <button onclick="exportFullSqlFile()" class="btn-export px-4 py-1.5 rounded-xl text-xs font-mono flex items-center gap-2 transition">
+                    <i class="fa-solid fa-download text-[11px]"></i>
+                    <span>Export .SQL</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ============================================================================
+         MAIN WORKSPACE CONTAINER
+         ============================================================================ -->
+    <main class="max-w-[1520px] w-full mx-auto px-4 lg:px-8 py-6 space-y-14">
+
+        <!-- ============================================================================
+             SECTION 1: FULL-WIDTH 3D OBSERVATORY STAGE (EXACT SCREENSHOT LAYOUT)
+             ============================================================================ -->
+        <section id="sec-observatory" class="scroll-mt-32">
+            <div class="observatory-stage relative rounded-[28px] min-h-[620px] p-5 sm:p-7 flex flex-col justify-between overflow-hidden">
+
+                <!-- Interactive Three.js Canvas Layer -->
+                <div id="three-stage" class="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing z-0"></div>
+
+                <!-- TOP OVERLAY ROW: Left Info Box + Right Control Pills -->
+                <div class="relative z-10 flex flex-wrap items-start justify-between gap-4 pointer-events-none">
+                    <!-- Top-Left Object Identity Card -->
+                    <div class="ui-card rounded-2xl p-5 max-w-md pointer-events-auto">
+                        <div class="flex items-center gap-2.5 text-[11px] font-mono tracking-wider uppercase text-sub">
+                            <span class="w-2.5 h-2.5 rounded-full bg-purple-400/50 inline-block"></span>
+                            <span id="hud-category-pk">TERRESTRIAL PLANET // PK: CB-104</span>
+                        </div>
+                        <h1 id="hud-body-title" class="font-display font-bold text-2xl sm:text-3xl text-white mt-1.5 tracking-wide">
+                            Mars (Sol-IV)
+                        </h1>
+                        <p id="hud-body-desc" class="text-xs sm:text-sm text-purple-200/85 mt-2 leading-relaxed">
+                            Iron-oxide desert world hosting Olympus Mons, Valles Marineris, and ancient river delta Jezero Crater.
+                        </p>
+                    </div>
+
+                    <!-- Top-Right Controls Bar -->
+                    <div class="flex flex-wrap items-center gap-2.5 pointer-events-auto">
+                        <button onclick="toggleOrreryMode()" id="btn-orrery-toggle" class="ui-card px-4 py-2 rounded-full text-xs font-mono text-white flex items-center gap-2 hover:border-pink-400 transition">
+                            <i class="fa-solid fa-solar-panel text-accent text-[11px]"></i>
+                            <span id="orrery-toggle-label">Switch to Solar System Orrery</span>
+                        </button>
+
+                        <button onclick="toggleWireframeMode()" id="btn-wireframe" class="ui-card px-4 py-2 rounded-full text-xs font-mono text-white flex items-center gap-2 hover:border-pink-400 transition">
+                            <i class="fa-solid fa-border-all text-accent text-[11px]"></i>
+                            <span>Wireframe</span>
+                        </button>
+
+                        <button onclick="resetStageCamera()" title="Reset Camera Angle" class="ui-card w-9 h-9 rounded-full text-xs font-mono text-white flex items-center justify-center hover:border-pink-400 transition">
+                            <i class="fa-solid fa-expand text-accent"></i>
+                        </button>
+
+                        <div class="ui-card px-3.5 py-2 rounded-full flex items-center gap-2.5">
+                            <i class="fa-solid fa-gauge-high text-accent text-xs"></i>
+                            <input id="stage-speed-slider" type="range" min="0" max="3" step="0.1" value="1.0" class="hud-slider w-20">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BOTTOM OVERLAY STACK: 5 Telemetry Cards + 10-Model Selector Dock -->
+                <div class="relative z-10 space-y-3 mt-72 sm:mt-80 pointer-events-none">
+                    <!-- 5 Telemetry Cards Row -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-12 gap-3 pointer-events-auto">
+                        <!-- Card 1: MASS / SCALE -->
+                        <div class="lg:col-span-2 ui-card rounded-2xl p-4">
+                            <span class="text-[10px] font-mono uppercase tracking-wider text-slate-400 block">MASS / SCALE</span>
+                            <span id="hud-stat-mass" class="font-display font-bold text-base sm:text-lg text-white mt-1 block">0.107 M⊕</span>
+                        </div>
+
+                        <!-- Card 2: MEAN RADIUS -->
+                        <div class="lg:col-span-2 ui-card rounded-2xl p-4">
+                            <span class="text-[10px] font-mono uppercase tracking-wider text-slate-400 block">MEAN RADIUS</span>
+                            <span id="hud-stat-radius" class="font-display font-bold text-base sm:text-lg text-accent mt-1 block">3,390 km</span>
+                        </div>
+
+                        <!-- Card 3: GRAVITY -->
+                        <div class="lg:col-span-2 ui-card rounded-2xl p-4">
+                            <span class="text-[10px] font-mono uppercase tracking-wider text-slate-400 block">GRAVITY</span>
+                            <span id="hud-stat-gravity" class="font-display font-bold text-base sm:text-lg text-white mt-1 block">3.72 m/s²</span>
+                        </div>
+
+                        <!-- Card 4: SURFACE TEMP -->
+                        <div class="lg:col-span-2 ui-card rounded-2xl p-4">
+                            <span class="text-[10px] font-mono uppercase tracking-wider text-slate-400 block">SURFACE TEMP</span>
+                            <span id="hud-stat-temp" class="font-display font-bold text-base sm:text-lg text-white mt-1 block">210 K</span>
+                        </div>
+
+                        <!-- Card 5: LINKED MISSIONS & LAWS (FK JOIN) -->
+                        <div class="col-span-2 sm:col-span-4 lg:col-span-4 ui-card rounded-2xl p-4 flex items-center justify-between gap-3">
+                            <div class="min-w-0">
+                                <span class="text-[10px] font-mono uppercase tracking-wider text-accent block">LINKED MISSIONS &amp; LAWS (FK JOIN)</span>
+                                <p id="hud-stat-links" class="font-mono text-xs text-white truncate mt-1">
+                                    Mars Perseverance &amp; Ingenuity • Mangalyaan (Mars...
+                                </p>
+                            </div>
+                            <button onclick="runBodyJoinInStudio()" class="pill-selected px-3.5 py-1.5 rounded-full text-xs font-mono text-accent hover:opacity-90 shrink-0 transition">
+                                Run JOIN
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bottom 10-Model Selector Dock Bar -->
+                    <div class="ui-card rounded-2xl px-4 py-2.5 flex items-center gap-2 overflow-x-auto pointer-events-auto">
+                        <div class="flex items-center gap-2 text-[11px] font-mono text-slate-400 shrink-0 mr-2">
+                            <i class="fa-solid fa-cube text-accent"></i>
+                            <span>10 3D MODELS:</span>
+                        </div>
+                        <div id="bottom-model-dock" class="flex items-center gap-1.5"></div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ============================================================================
+             SECTION 2: CELESTIAL CATALOG (CELESTIAL_BODIES ⋈ STAR_SYSTEMS ⋈ ATMOSPHERES)
+             ============================================================================ -->
+        <section id="sec-catalog" class="space-y-5 scroll-mt-28">
+            <div class="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-4">
+                <div>
+                    <span class="text-xs font-mono uppercase tracking-wider text-accent">RELATIONAL VIEW // CELESTIAL_BODIES ⋈ STAR_SYSTEMS ⋈ ATMOSPHERES</span>
+                    <h2 class="font-display font-bold text-2xl mt-1">Celestial Bodies &amp; Atmospheric Profiles</h2>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="renderCatalogGrid('ALL')" id="cat-btn-ALL" class="cat-filter pill-selected px-3.5 py-1.5 rounded-full text-xs font-mono">All Objects (10)</button>
+                    <button onclick="renderCatalogGrid('Terrestrial Planet')" id="cat-btn-Terrestrial Planet" class="cat-filter ui-card px-3.5 py-1.5 rounded-full text-xs font-mono text-slate-300">Terrestrial</button>
+                    <button onclick="renderCatalogGrid('Gas Giant')" id="cat-btn-Gas Giant" class="cat-filter ui-card px-3.5 py-1.5 rounded-full text-xs font-mono text-slate-300">Gas &amp; Ice Giants</button>
+                    <button onclick="renderCatalogGrid('Relativistic')" id="cat-btn-Relativistic" class="cat-filter ui-card px-3.5 py-1.5 rounded-full text-xs font-mono text-slate-300">Stars &amp; Relativistic</button>
+                </div>
+            </div>
+
+            <div id="catalog-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4"></div>
+        </section>
+
+        <!-- ============================================================================
+             SECTION 3: SPACE MISSIONS & OBSERVATORIES (SPACE_MISSIONS ⋈ SPACE_AGENCIES)
+             ============================================================================ -->
+        <section id="sec-missions" class="space-y-6 scroll-mt-28">
+            <div class="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-4">
+                <div>
+                    <span class="text-xs font-mono uppercase tracking-wider text-accent">FOREIGN KEY REGISTRY // SPACE_AGENCIES (1) ──&lt; SPACE_MISSIONS (N) &amp; OBSERVATORIES (N)</span>
+                    <h2 class="font-display font-bold text-2xl mt-1">Space Missions &amp; Orbital Observatories</h2>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="renderMissionsGrid('ALL')" id="mis-btn-ALL" class="mis-filter pill-selected px-3.5 py-1.5 rounded-full text-xs font-mono">All Agencies</button>
+                    <button onclick="renderMissionsGrid('AG-01')" id="mis-btn-AG-01" class="mis-filter ui-card px-3.5 py-1.5 rounded-full text-xs font-mono text-slate-300">NASA</button>
+                    <button onclick="renderMissionsGrid('AG-02')" id="mis-btn-AG-02" class="mis-filter ui-card px-3.5 py-1.5 rounded-full text-xs font-mono text-slate-300">ISRO</button>
+                    <button onclick="renderMissionsGrid('AG-03')" id="mis-btn-AG-03" class="mis-filter ui-card px-3.5 py-1.5 rounded-full text-xs font-mono text-slate-300">ESA / JAXA</button>
+                </div>
+            </div>
+
+            <div id="missions-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+
+            <!-- Compact Observatories Strip -->
+            <div class="pt-2 space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-mono uppercase tracking-wider text-sub">TABLE: OBSERVATORIES (DEEP-SPACE TELESCOPES &amp; SENSOR ARRAYS)</span>
+                    <button onclick="loadTableQuery('OBSERVATORIES')" class="text-xs font-mono text-accent hover:underline">SELECT * FROM OBSERVATORIES →</button>
+                </div>
+                <div id="observatories-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3"></div>
+            </div>
+        </section>
+
+        <!-- ============================================================================
+             SECTION 4: PIONEERS & LAWS (SCIENTISTS_DISCOVERIES)
+             ============================================================================ -->
+        <section id="sec-pioneers" class="space-y-5 scroll-mt-28">
+            <div class="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-4">
+                <div>
+                    <span class="text-xs font-mono uppercase tracking-wider text-accent">TABLE // SCIENTISTS_DISCOVERIES (PK: disc_id • FK: target_body_id, obs_id)</span>
+                    <h2 class="font-display font-bold text-2xl mt-1">Pioneers, Astrophysical Laws &amp; Equations</h2>
+                </div>
+                <button onclick="loadTableQuery('SCIENTISTS_DISCOVERIES')" class="ui-card px-4 py-1.5 rounded-full text-xs font-mono text-accent">
+                    Inspect Table in SQL Studio
+                </button>
+            </div>
+
+            <div id="pioneers-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </section>
+
+        <!-- ============================================================================
+             SECTION 5: SQL*PLUS & MYSQL STUDIO (8 INTERCONNECTED 3NF TABLES)
+             ============================================================================ -->
+        <section id="sec-studio" class="space-y-5 scroll-mt-28 pb-10">
+            <div class="ui-surface rounded-3xl p-6 space-y-6">
+                <!-- Studio Top Bar -->
+                <div class="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
+                    <div>
+                        <div class="flex items-center gap-2.5">
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono pill-selected text-accent">RDBMS ENGINE</span>
+                            <span id="db-tuple-counter" class="text-xs font-mono text-emerald-400">● 8 NORMALIZED TABLES (3NF) • 76 TUPLES</span>
+                        </div>
+                        <h2 class="font-display font-bold text-2xl mt-1">SQL*Plus &amp; MySQL 8.0 Interactive Workbench</h2>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <div class="ui-card p-1 rounded-full flex items-center text-xs font-mono">
+                            <button onclick="switchStudioTab('TERMINAL')" id="tab-btn-terminal" class="px-4 py-1.5 rounded-full pill-selected">
+                                <i class="fa-solid fa-terminal mr-1.5 text-accent"></i>SQL Query Terminal
+                            </button>
+                            <button onclick="switchStudioTab('SCHEMA')" id="tab-btn-schema" class="px-4 py-1.5 rounded-full text-slate-400 hover:text-white">
+                                <i class="fa-solid fa-diagram-project mr-1.5 text-sub"></i>8-Table ER Schema (3NF)
+                            </button>
+                        </div>
+
+                        <button onclick="openInsertModal()" class="btn-export px-4 py-2 rounded-full text-xs font-mono">
+                            + Insert Tuple
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STUDIO TAB 1: LIVE SQL TERMINAL -->
+                <div id="studio-panel-terminal" class="space-y-5">
+                    <!-- 8 Table Selector Pills -->
+                    <div class="space-y-2">
+                        <div class="flex flex-wrap items-center justify-between text-xs font-mono text-slate-400">
+                            <span>8 RELATIONAL TABLES (Click table to run <code class="text-accent">SELECT *</code> • Click <code class="text-sub">DESC</code> for column types):</span>
+                            <button onclick="resetAllTables()" class="text-xs text-rose-400 hover:underline">Reset Default Data</button>
+                        </div>
+                        <div id="studio-table-bar" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2"></div>
+                    </div>
+
+                    <!-- Editor + Preset Queries Split -->
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                        <!-- Left: 8 Preset Relational Queries (4 cols) -->
+                        <div class="lg:col-span-4 ui-card rounded-2xl p-4 space-y-2.5">
+                            <div class="flex items-center justify-between border-b border-white/10 pb-2.5">
+                                <span class="font-display font-bold text-xs uppercase tracking-wider text-accent">Preset Relational Queries</span>
+                                <span class="text-[10px] font-mono text-slate-400">1-Click Execute</span>
+                            </div>
+                            <div id="studio-presets-list" class="space-y-2 max-h-[430px] overflow-y-auto pr-1"></div>
+                        </div>
+
+                        <!-- Right: Live SQL Editor & Result Console (8 cols) -->
+                        <div class="lg:col-span-8 ui-card rounded-2xl p-4 flex flex-col space-y-3.5">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="ui-surface p-1 rounded-xl flex items-center gap-1 text-xs font-mono">
+                                    <button onclick="setOutputFormat('MYSQL')" id="fmt-mysql" class="px-3 py-1.5 rounded-lg pill-selected">
+                                        <i class="fa-solid fa-table mr-1.5 text-accent"></i>MySQL 8.0 Grid
+                                    </button>
+                                    <button onclick="setOutputFormat('SQLPLUS')" id="fmt-sqlplus" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white">
+                                        <i class="fa-solid fa-terminal mr-1.5 text-amber-400"></i>Oracle SQL*Plus Spool
+                                    </button>
+                                </div>
+
+                                <div class="flex items-center gap-2">
+                                    <button onclick="copyEditorSql()" class="ui-card px-3 py-1.5 rounded-xl text-xs font-mono text-slate-300 hover:text-white">
+                                        <i class="fa-regular fa-copy mr-1"></i>Copy
+                                    </button>
+                                    <button onclick="runCustomSql()" class="btn-export px-4 py-1.5 rounded-xl text-xs font-mono flex items-center gap-2">
+                                        <i class="fa-solid fa-play text-[10px]"></i>
+                                        <span>Execute SQL (Ctrl+Enter)</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Editable SQL Input -->
+                            <textarea id="sql-editor" rows="4" spellcheck="false" class="w-full p-3.5 rounded-xl bg-black/50 border border-white/15 font-mono text-xs sm:text-sm text-white focus:outline-none focus:border-pink-400 leading-relaxed" placeholder="Write any SQL query (SELECT, JOIN, GROUP BY, HAVING, INSERT, UPDATE, DELETE, SHOW TABLES, DESC)..."></textarea>
+
+                            <!-- Status Bar -->
+                            <div class="flex items-center justify-between px-3.5 py-2 rounded-xl bg-black/35 border border-white/10 text-xs font-mono">
+                                <span id="sql-exec-status" class="text-emerald-400">● Ready</span>
+                                <span id="sql-exec-meta" class="text-slate-400">0.00 ms</span>
+                            </div>
+
+                            <!-- Output Container -->
+                            <div id="sql-result-container" class="rounded-xl border border-white/10 bg-black/30 overflow-x-auto max-h-[340px] overflow-y-auto p-2.5"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STUDIO TAB 2: 8-TABLE 3NF ER SCHEMA -->
+                <div id="studio-panel-schema" class="hidden space-y-4">
+                    <div class="p-3.5 rounded-2xl bg-black/30 border border-white/10 font-mono text-xs flex flex-wrap items-center justify-between gap-2">
+                        <span><strong class="text-accent">Relational Chain:</strong> GALAXIES (1) ──&lt; STAR_SYSTEMS (N) ──&lt; CELESTIAL_BODIES (N) ──&lt; ATMOSPHERES (1)</span>
+                        <span><strong class="text-sub">Operations:</strong> SPACE_AGENCIES (1) ──&lt; SPACE_MISSIONS (N) &amp; OBSERVATORIES (N) ──&lt; SCIENTISTS_DISCOVERIES (N)</span>
+                    </div>
+                    <div id="er-schema-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 font-mono text-xs"></div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ============================================================================
+         MODAL: + INSERT TUPLE INTO CELESTIAL_BODIES
+         ============================================================================ -->
+    <div id="modal-insert" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="ui-surface rounded-3xl max-w-lg w-full p-6 space-y-4 border border-pink-400/40">
+            <div class="flex items-center justify-between border-b border-white/10 pb-3">
+                <div>
+                    <span class="text-[10px] font-mono uppercase text-accent">LIVE SQL DML</span>
+                    <h3 class="font-display font-bold text-lg">INSERT INTO CELESTIAL_BODIES</h3>
+                </div>
+                <button onclick="closeInsertModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 font-mono text-xs">
+                <div>
+                    <label class="text-[10px] text-slate-400 block">body_id (PK)</label>
+                    <input id="inp-id" type="text" value="CB-111" class="w-full mt-1 px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white">
+                </div>
+                <div>
+                    <label class="text-[10px] text-slate-400 block">system_id (FK)</label>
+                    <select id="inp-sys" class="w-full mt-1 px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white">
+                        <option value="SYS-01">SYS-01 (Sol System)</option>
+                        <option value="SYS-02">SYS-02 (TRAPPIST-1)</option>
+                        <option value="SYS-03">SYS-03 (Proxima Centauri)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] text-slate-400 block">name</label>
+                    <input id="inp-name" type="text" value="TRAPPIST-1e" class="w-full mt-1 px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white">
+                </div>
+                <div>
+                    <label class="text-[10px] text-slate-400 block">body_type</label>
+                    <select id="inp-type" class="w-full mt-1 px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white">
+                        <option value="Terrestrial Planet">Terrestrial Planet</option>
+                        <option value="Gas Giant">Gas Giant</option>
+                        <option value="Ice Giant">Ice Giant</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] text-slate-400 block">mass_scale</label>
+                    <input id="inp-mass" type="text" value="0.692 M⊕" class="w-full mt-1 px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white">
+                </div>
+                <div>
+                    <label class="text-[10px] text-slate-400 block">radius_km</label>
+                    <input id="inp-radius" type="number" value="5860" class="w-full mt-1 px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white">
+                </div>
+                <div>
+                    <label class="text-[10px] text-slate-400 block">gravity_ms2</label>
+                    <input id="inp-grav" type="number" step="0.01" value="8.01" class="w-full mt-1 px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white">
+                </div>
+                <div>
+                    <label class="text-[10px] text-slate-400 block">temp_k</label>
+                    <input id="inp-temp" type="number" value="251" class="w-full mt-1 px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white">
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeInsertModal()" class="ui-card px-4 py-2 rounded-xl text-xs font-mono">Cancel</button>
+                <button onclick="submitInsertTuple()" class="btn-export px-5 py-2 rounded-xl text-xs font-mono">Execute INSERT</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subtle Status Toast -->
+    <div id="toast-banner" class="fixed bottom-5 right-5 z-50 hidden ui-surface px-4 py-3 rounded-2xl border border-pink-400/50 shadow-xl flex items-center gap-3">
+        <i class="fa-solid fa-circle-check text-accent"></i>
+        <span id="toast-text" class="font-mono text-xs"></span>
+    </div>
+
+    <!-- ============================================================================
+         APPLICATION JAVASCRIPT: 8-TABLE RELATIONAL DB + THREE.JS PROCEDURAL PLANETS
+         ============================================================================ -->
+    <script>
+        /* ----------------------------------------------------------------------------
+           1. 8 NORMALIZED (3NF) TABLES SCHEMA METADATA
+           ---------------------------------------------------------------------------- */
+        const SCHEMA_DEFS = {
+            GALAXIES: {
+                pk: 'galaxy_id',
+                fk: 'None (Root Entity)',
+                columns: [
+                    { name: 'galaxy_id', type: 'VARCHAR(10)', key: 'PK' },
+                    { name: 'name', type: 'VARCHAR(60)', key: 'NOT NULL' },
+                    { name: 'morphology', type: 'VARCHAR(30)', key: '' },
+                    { name: 'distance_mly', type: 'DECIMAL(8,3)', key: '' },
+                    { name: 'diameter_ly', type: 'INT', key: '' },
+                    { name: 'redshift_z', type: 'DECIMAL(6,4)', key: '' },
+                    { name: 'smbh_mass_solar', type: 'BIGINT', key: '' }
+                ]
+            },
+            STAR_SYSTEMS: {
+                pk: 'system_id',
+                fk: 'galaxy_id → GALAXIES',
+                columns: [
+                    { name: 'system_id', type: 'VARCHAR(10)', key: 'PK' },
+                    { name: 'galaxy_id', type: 'VARCHAR(10)', key: 'FK' },
+                    { name: 'star_name', type: 'VARCHAR(60)', key: 'NOT NULL' },
+                    { name: 'spectral_class', type: 'VARCHAR(25)', key: '' },
+                    { name: 'temp_kelvin', type: 'INT', key: '' },
+                    { name: 'luminosity_solar', type: 'DECIMAL(12,4)', key: '' },
+                    { name: 'age_gyr', type: 'DECIMAL(5,2)', key: '' },
+                    { name: 'distance_ly', type: 'DECIMAL(10,2)', key: '' }
+                ]
+            },
+            CELESTIAL_BODIES: {
+                pk: 'body_id',
+                fk: 'system_id → STAR_SYSTEMS',
+                columns: [
+                    { name: 'body_id', type: 'VARCHAR(10)', key: 'PK' },
+                    { name: 'system_id', type: 'VARCHAR(10)', key: 'FK' },
+                    { name: 'name', type: 'VARCHAR(60)', key: 'NOT NULL' },
+                    { name: 'body_type', type: 'VARCHAR(35)', key: '' },
+                    { name: 'mass_scale', type: 'VARCHAR(25)', key: '' },
+                    { name: 'radius_km', type: 'DECIMAL(12,1)', key: '' },
+                    { name: 'gravity_ms2', type: 'DECIMAL(10,2)', key: '' },
+                    { name: 'temp_k', type: 'INT', key: '' },
+                    { name: 'orbital_period_days', type: 'DECIMAL(10,2)', key: '' },
+                    { name: 'esi_index', type: 'DECIMAL(4,2)', key: '' }
+                ]
+            },
+            ATMOSPHERES: {
+                pk: 'atmo_id',
+                fk: 'body_id → CELESTIAL_BODIES',
+                columns: [
+                    { name: 'atmo_id', type: 'VARCHAR(10)', key: 'PK' },
+                    { name: 'body_id', type: 'VARCHAR(10)', key: 'FK' },
+                    { name: 'pressure_bar', type: 'DECIMAL(10,4)', key: '' },
+                    { name: 'primary_gas', type: 'VARCHAR(30)', key: '' },
+                    { name: 'secondary_gas', type: 'VARCHAR(30)', key: '' },
+                    { name: 'scale_height_km', type: 'DECIMAL(6,2)', key: '' },
+                    { name: 'magnetosphere_gauss', type: 'DECIMAL(8,3)', key: '' }
+                ]
+            },
+            SPACE_AGENCIES: {
+                pk: 'agency_id',
+                fk: 'None (Root Entity)',
+                columns: [
+                    { name: 'agency_id', type: 'VARCHAR(10)', key: 'PK' },
+                    { name: 'agency_code', type: 'VARCHAR(12)', key: 'UNIQUE' },
+                    { name: 'agency_name', type: 'VARCHAR(80)', key: 'NOT NULL' },
+                    { name: 'country', type: 'VARCHAR(40)', key: '' },
+                    { name: 'founded_year', type: 'INT', key: '' },
+                    { name: 'annual_budget_usd_b', type: 'DECIMAL(6,2)', key: '' },
+                    { name: 'primary_launch_vehicle', type: 'VARCHAR(50)', key: '' }
+                ]
+            },
+            SPACE_MISSIONS: {
+                pk: 'mission_id',
+                fk: 'agency_id → SPACE_AGENCIES, target_body_id → CELESTIAL_BODIES',
+                columns: [
+                    { name: 'mission_id', type: 'VARCHAR(10)', key: 'PK' },
+                    { name: 'agency_id', type: 'VARCHAR(10)', key: 'FK' },
+                    { name: 'target_body_id', type: 'VARCHAR(10)', key: 'FK' },
+                    { name: 'mission_name', type: 'VARCHAR(65)', key: 'NOT NULL' },
+                    { name: 'launch_date', type: 'DATE', key: '' },
+                    { name: 'mission_type', type: 'VARCHAR(30)', key: '' },
+                    { name: 'status', type: 'VARCHAR(25)', key: '' },
+                    { name: 'delta_v_kms', type: 'DECIMAL(6,2)', key: '' },
+                    { name: 'payload_kg', type: 'INT', key: '' },
+                    { name: 'key_finding', type: 'VARCHAR(140)', key: '' }
+                ]
+            },
+            OBSERVATORIES: {
+                pk: 'obs_id',
+                fk: 'agency_id → SPACE_AGENCIES',
+                columns: [
+                    { name: 'obs_id', type: 'VARCHAR(10)', key: 'PK' },
+                    { name: 'agency_id', type: 'VARCHAR(10)', key: 'FK' },
+                    { name: 'name', type: 'VARCHAR(65)', key: 'NOT NULL' },
+                    { name: 'orbit_regime', type: 'VARCHAR(40)', key: '' },
+                    { name: 'wavelength_band', type: 'VARCHAR(40)', key: '' },
+                    { name: 'aperture_m', type: 'DECIMAL(7,2)', key: '' },
+                    { name: 'angular_res_arcsec', type: 'DECIMAL(8,5)', key: '' },
+                    { name: 'operational_temp_k', type: 'INT', key: '' }
+                ]
+            },
+            SCIENTISTS_DISCOVERIES: {
+                pk: 'disc_id',
+                fk: 'target_body_id → CELESTIAL_BODIES, obs_id → OBSERVATORIES',
+                columns: [
+                    { name: 'disc_id', type: 'VARCHAR(10)', key: 'PK' },
+                    { name: 'target_body_id', type: 'VARCHAR(10)', key: 'FK' },
+                    { name: 'obs_id', type: 'VARCHAR(10)', key: 'FK' },
+                    { name: 'scientist_name', type: 'VARCHAR(60)', key: 'NOT NULL' },
+                    { name: 'nationality', type: 'VARCHAR(35)', key: '' },
+                    { name: 'discovery_year', type: 'INT', key: '' },
+                    { name: 'law_or_discovery', type: 'VARCHAR(85)', key: '' },
+                    { name: 'core_equation', type: 'VARCHAR(60)', key: '' },
+                    { name: 'nobel_status', type: 'VARCHAR(30)', key: '' }
+                ]
+            }
+        };
+
+        /* ----------------------------------------------------------------------------
+           2. SEED DATA FOR ALL 8 RELATIONAL TABLES
+           ---------------------------------------------------------------------------- */
+        const SEED_DB = {
+            GALAXIES: [
+                { galaxy_id: 'GAL-01', name: 'Milky Way Galaxy', morphology: 'SBbc Barred Spiral', distance_mly: 0.000, diameter_ly: 105700, redshift_z: 0.0000, smbh_mass_solar: 4300000 },
+                { galaxy_id: 'GAL-02', name: 'Andromeda Galaxy (M31)', morphology: 'SA(s)b Spiral', distance_mly: 2.537, diameter_ly: 220000, redshift_z: -0.0010, smbh_mass_solar: 140000000 },
+                { galaxy_id: 'GAL-03', name: 'Triangulum Galaxy (M33)', morphology: 'SA(s)cd Spiral', distance_mly: 2.730, diameter_ly: 60000, redshift_z: -0.0006, smbh_mass_solar: 1500 },
+                { galaxy_id: 'GAL-04', name: 'Messier 87 (Virgo A)', morphology: 'E0P Giant Elliptical', distance_mly: 53.490, diameter_ly: 240000, redshift_z: 0.0042, smbh_mass_solar: 6500000000 },
+                { galaxy_id: 'GAL-05', name: 'Large Magellanic Cloud', morphology: 'SB(s)m Irregular', distance_mly: 0.163, diameter_ly: 32200, redshift_z: 0.0009, smbh_mass_solar: 600000 },
+                { galaxy_id: 'GAL-06', name: 'Sombrero Galaxy (M104)', morphology: 'SA(s)a Spiral', distance_mly: 31.100, diameter_ly: 49000, redshift_z: 0.0034, smbh_mass_solar: 1000000000 }
+            ],
+
+            STAR_SYSTEMS: [
+                { system_id: 'SYS-01', galaxy_id: 'GAL-01', star_name: 'Sol (The Sun)', spectral_class: 'G2V Main-Sequence', temp_kelvin: 5778, luminosity_solar: 1.0000, age_gyr: 4.60, distance_ly: 0.00 },
+                { system_id: 'SYS-02', galaxy_id: 'GAL-01', star_name: 'TRAPPIST-1', spectral_class: 'M8V Ultracool Dwarf', temp_kelvin: 2566, luminosity_solar: 0.0005, age_gyr: 7.60, distance_ly: 40.66 },
+                { system_id: 'SYS-03', galaxy_id: 'GAL-01', star_name: 'Alpha Centauri AB / Proxima', spectral_class: 'G2V + K1V + M5.5Ve', temp_kelvin: 5790, luminosity_solar: 1.5190, age_gyr: 5.30, distance_ly: 4.24 },
+                { system_id: 'SYS-04', galaxy_id: 'GAL-01', star_name: 'PSR B0531+21 (Crab)', spectral_class: 'Neutron Star / Pulsar', temp_kelvin: 1600000, luminosity_solar: 100000.0, age_gyr: 0.001, distance_ly: 6500.00 },
+                { system_id: 'SYS-05', galaxy_id: 'GAL-01', star_name: 'Sagittarius A* Core', spectral_class: 'Supermassive Kerr BH', temp_kelvin: 10000000, luminosity_solar: 100.0000, age_gyr: 13.20, distance_ly: 26670.00 },
+                { system_id: 'SYS-06', galaxy_id: 'GAL-02', star_name: 'M31 Galactic Core', spectral_class: 'K0III Bulge Cluster', temp_kelvin: 4200, luminosity_solar: 450.0000, age_gyr: 9.00, distance_ly: 2537000.00 }
+            ],
+
+            CELESTIAL_BODIES: [
+                {
+                    body_id: 'CB-103', system_id: 'SYS-01', name: 'Earth (Sol-III)', dock_label: 'Earth',
+                    body_type: 'Terrestrial Planet', mass_scale: '1.000 M⊕', radius_km: 6371, gravity_ms2: 9.81, temp_k: 288,
+                    orbital_period_days: 365.25, esi_index: 1.00, model_key: 'earth',
+                    desc: 'Oceanic nitrogen-oxygen biosphere shielded by a dipolar magnetosphere; planetary baseline for Earth Similarity Index (1.00).'
+                },
+                {
+                    body_id: 'CB-104', system_id: 'SYS-01', name: 'Mars (Sol-IV)', dock_label: 'Mars',
+                    body_type: 'Terrestrial Planet', mass_scale: '0.107 M⊕', radius_km: 3390, gravity_ms2: 3.72, temp_k: 210,
+                    orbital_period_days: 686.98, esi_index: 0.64, model_key: 'mars',
+                    desc: 'Iron-oxide desert world hosting Olympus Mons, Valles Marineris, and ancient river delta Jezero Crater.'
+                },
+                {
+                    body_id: 'CB-105', system_id: 'SYS-01', name: 'Jupiter (Sol-V)', dock_label: 'Jupiter',
+                    body_type: 'Gas Giant', mass_scale: '317.8 M⊕', radius_km: 69911, gravity_ms2: 24.79, temp_k: 165,
+                    orbital_period_days: 4332.59, esi_index: 0.12, model_key: 'jupiter',
+                    desc: 'Largest gas giant in the Solar System with banded ammonia cloud decks, the Great Red Spot anticyclone, and 95 moons.'
+                },
+                {
+                    body_id: 'CB-106', system_id: 'SYS-01', name: 'Saturn (Sol-VI)', dock_label: 'Saturn',
+                    body_type: 'Gas Giant', mass_scale: '95.16 M⊕', radius_km: 58232, gravity_ms2: 10.44, temp_k: 134,
+                    orbital_period_days: 10759.22, esi_index: 0.13, model_key: 'saturn',
+                    desc: 'Obverse gas giant encircled by a 282,000 km water-ice ring system and hydrocarbon-rich moon Titan.'
+                },
+                {
+                    body_id: 'CB-107', system_id: 'SYS-01', name: 'Neptune (Sol-VIII)', dock_label: 'Neptune',
+                    body_type: 'Ice Giant', mass_scale: '17.15 M⊕', radius_km: 24622, gravity_ms2: 11.15, temp_k: 72,
+                    orbital_period_days: 60195.00, esi_index: 0.16, model_key: 'neptune',
+                    desc: 'Outer ice giant swept by supersonic 2,100 km/h methane-hydrogen winds and orbited by captured moon Triton.'
+                },
+                {
+                    body_id: 'CB-101', system_id: 'SYS-01', name: 'The Sun (Sol)', dock_label: 'The Sun',
+                    body_type: 'Relativistic', mass_scale: '1.000 M☉', radius_km: 696340, gravity_ms2: 274.00, temp_k: 5778,
+                    orbital_period_days: 0.00, esi_index: 0.00, model_key: 'sun',
+                    desc: 'G2V main-sequence yellow dwarf star fusing 600 million metric tons of hydrogen per second via the proton-proton chain.'
+                },
+                {
+                    body_id: 'CB-108', system_id: 'SYS-05', name: 'Gargantua / Sgr A*', dock_label: 'Gargantua / Sgr A*',
+                    body_type: 'Relativistic', mass_scale: '4.30M M☉', radius_km: 12000000, gravity_ms2: 99999.00, temp_k: 10000000,
+                    orbital_period_days: 0.00, esi_index: 0.00, model_key: 'blackhole',
+                    desc: 'Supermassive Kerr black hole at the Milky Way galactic center featuring a relativistic accretion disk and photon ring.'
+                },
+                {
+                    body_id: 'CB-109', system_id: 'SYS-04', name: 'Crab Pulsar (PSR B0531)', dock_label: 'Crab Pulsar',
+                    body_type: 'Relativistic', mass_scale: '1.400 M☉', radius_km: 10.5, gravity_ms2: 99999.00, temp_k: 1600000,
+                    orbital_period_days: 0.00, esi_index: 0.00, model_key: 'pulsar',
+                    desc: '30 Hz spinning magnetized neutron star remnant of Supernova 1054 emitting bipolar synchrotron radiation jets.'
+                },
+                {
+                    body_id: 'CB-110', system_id: 'SYS-06', name: 'Andromeda Galaxy (M31)', dock_label: 'Andromeda Galaxy',
+                    body_type: 'Relativistic', mass_scale: '1.50T M☉', radius_km: 9999999, gravity_ms2: 120.00, temp_k: 4200,
+                    orbital_period_days: 0.00, esi_index: 0.00, model_key: 'galaxy',
+                    desc: 'Nearest major spiral galaxy (2.537 Mly) containing 1 trillion stars approaching the Milky Way at 300 km/s.'
+                },
+                {
+                    body_id: 'CB-102', system_id: 'SYS-01', name: 'James Webb Telescope (L2)', dock_label: 'James Webb',
+                    body_type: 'Relativistic', mass_scale: '6,500 kg', radius_km: 0.021, gravity_ms2: 0.00, temp_k: 40,
+                    orbital_period_days: 365.25, esi_index: 0.00, model_key: 'jwst',
+                    desc: '6.5-meter 18-segment gold-coated beryllium infrared space observatory operating in a halo orbit at Sun-Earth L2.'
+                }
+            ],
+
+            ATMOSPHERES: [
+                { atmo_id: 'ATM-01', body_id: 'CB-103', pressure_bar: 1.0132, primary_gas: 'N2 (78.08%)', secondary_gas: 'O2 (20.95%)', scale_height_km: 8.50, magnetosphere_gauss: 0.500 },
+                { atmo_id: 'ATM-02', body_id: 'CB-104', pressure_bar: 0.0063, primary_gas: 'CO2 (95.32%)', secondary_gas: 'N2 (2.70%)', scale_height_km: 11.10, magnetosphere_gauss: 0.001 },
+                { atmo_id: 'ATM-03', body_id: 'CB-105', pressure_bar: 1000.0000, primary_gas: 'H2 (89.80%)', secondary_gas: 'He (10.20%)', scale_height_km: 27.00, magnetosphere_gauss: 4.280 },
+                { atmo_id: 'ATM-04', body_id: 'CB-106', pressure_bar: 1400.0000, primary_gas: 'H2 (96.30%)', secondary_gas: 'He (3.25%)', scale_height_km: 59.50, magnetosphere_gauss: 0.210 },
+                { atmo_id: 'ATM-05', body_id: 'CB-107', pressure_bar: 1000.0000, primary_gas: 'H2 (80.00%)', secondary_gas: 'He (19.00%)', scale_height_km: 19.70, magnetosphere_gauss: 0.140 },
+                { atmo_id: 'ATM-06', body_id: 'CB-101', pressure_bar: 0.0001, primary_gas: 'H+ Corona (73%)', secondary_gas: 'He2+ (25%)', scale_height_km: 150.00, magnetosphere_gauss: 1.000 }
+            ],
+
+            SPACE_AGENCIES: [
+                { agency_id: 'AG-01', agency_code: 'NASA', agency_name: 'National Aeronautics and Space Administration', country: 'United States', founded_year: 1958, annual_budget_usd_b: 25.40, primary_launch_vehicle: 'SLS Block 1 / Falcon Heavy' },
+                { agency_id: 'AG-02', agency_code: 'ISRO', agency_name: 'Indian Space Research Organisation', country: 'India', founded_year: 1969, annual_budget_usd_b: 1.95, primary_launch_vehicle: 'LVM3 (GSLV Mk-III) / PSLV-XL' },
+                { agency_id: 'AG-03', agency_code: 'ESA', agency_name: 'European Space Agency', country: 'Europe (22 States)', founded_year: 1975, annual_budget_usd_b: 8.45, primary_launch_vehicle: 'Ariane 6 / Vega-C' },
+                { agency_id: 'AG-04', agency_code: 'JAXA', agency_name: 'Japan Aerospace Exploration Agency', country: 'Japan', founded_year: 2003, annual_budget_usd_b: 3.10, primary_launch_vehicle: 'H3 Launch Vehicle' },
+                { agency_id: 'AG-05', agency_code: 'CSA', agency_name: 'Canadian Space Agency', country: 'Canada', founded_year: 1989, annual_budget_usd_b: 0.42, primary_launch_vehicle: 'Partnered (Canadarm3 / NIRISS)' }
+            ],
+
+            SPACE_MISSIONS: [
+                { mission_id: 'MS-101', agency_id: 'AG-01', target_body_id: 'CB-104', mission_name: 'Mars Perseverance & Ingenuity', launch_date: '2020-07-30', mission_type: 'Rover & Rotorcraft', status: 'ACTIVE SURFACE', delta_v_kms: 5.90, payload_kg: 1025, key_finding: 'Jezero Crater delta mudstone core caching, MOXIE oxygen synthesis, and 72 aerial flights.' },
+                { mission_id: 'MS-102', agency_id: 'AG-02', target_body_id: 'CB-104', mission_name: 'Mangalyaan (Mars Orbiter Mission)', launch_date: '2013-11-05', mission_type: 'Planetary Orbiter', status: 'COMPLETED', delta_v_kms: 5.40, payload_kg: 1337, key_finding: 'Martian exospheric Argon-40 telemetry and global dust storm albedo mapping.' },
+                { mission_id: 'MS-103', agency_id: 'AG-02', target_body_id: 'CB-103', mission_name: 'Chandrayaan-3 Vikram & Pragyan', launch_date: '2023-07-14', mission_type: 'Lunar South Pole Lander', status: 'SUCCESS', delta_v_kms: 6.10, payload_kg: 3900, key_finding: 'First soft landing near Lunar South Pole (69.37°S) and in-situ LIBS sulfur confirmation.' },
+                { mission_id: 'MS-104', agency_id: 'AG-02', target_body_id: 'CB-101', mission_name: 'Aditya-L1 Solar Observatory', launch_date: '2023-09-02', mission_type: 'Lagrange L1 Halo', status: 'ACTIVE L1', delta_v_kms: 0.42, payload_kg: 1475, key_finding: 'Continuous VELC coronal mass ejection kinematics and solar wind particle monitoring.' },
+                { mission_id: 'MS-105', agency_id: 'AG-01', target_body_id: 'CB-107', mission_name: 'Voyager 2 Grand Tour', launch_date: '1977-08-20', mission_type: 'Interstellar Probe', status: 'INTERSTELLAR', delta_v_kms: 18.50, payload_kg: 825, key_finding: 'Only spacecraft to visit Jupiter, Saturn, Uranus, and Neptune; crossed Heliopause at 119 AU.' },
+                { mission_id: 'MS-106', agency_id: 'AG-03', target_body_id: 'CB-106', mission_name: 'Cassini-Huygens Saturn Orbiter', launch_date: '1997-10-15', mission_type: 'Orbiter & Titan Lander', status: 'COMPLETED', delta_v_kms: 14.40, payload_kg: 5712, key_finding: 'Enceladus hydrothermal H2 plumes and Huygens landing on Titan hydrocarbon lakes.' },
+                { mission_id: 'MS-107', agency_id: 'AG-03', target_body_id: 'CB-102', mission_name: 'James Webb Space Telescope', launch_date: '2021-12-25', mission_type: 'L2 Space Observatory', status: 'ACTIVE L2', delta_v_kms: 0.15, payload_kg: 6500, key_finding: 'High-redshift z>13 early galaxies and exoplanet atmospheric transmission spectra.' },
+                { mission_id: 'MS-108', agency_id: 'AG-01', target_body_id: 'CB-105', mission_name: 'Juno Polar Jupiter Orbiter', launch_date: '2011-08-05', mission_type: 'Polar Magnetosphere Orbiter', status: 'ACTIVE ORBIT', delta_v_kms: 11.20, payload_kg: 3625, key_finding: 'Mapped Jovian deep dynamo, polar cyclone polygons, and Ganymede ionospheric profile.' },
+                { mission_id: 'MS-109', agency_id: 'AG-01', target_body_id: 'CB-101', mission_name: 'Parker Solar Probe', launch_date: '2018-08-12', mission_type: 'Heliophysics Perihelion', status: 'ACTIVE', delta_v_kms: 22.10, payload_kg: 685, key_finding: 'Fastest human-made object (192 km/s) sampling magnetic switchbacks inside the solar corona.' }
+            ],
+
+            OBSERVATORIES: [
+                { obs_id: 'OBS-01', agency_id: 'AG-01', name: 'James Webb Space Telescope', orbit_regime: 'Sun-Earth L2 Halo', wavelength_band: 'Near/Mid-Infrared (0.6-28 μm)', aperture_m: 6.50, angular_res_arcsec: 0.06800, operational_temp_k: 40 },
+                { obs_id: 'OBS-02', agency_id: 'AG-01', name: 'Hubble Space Telescope', orbit_regime: 'LEO 535 km (28.5°)', wavelength_band: 'UV / Optical / Near-IR', aperture_m: 2.40, angular_res_arcsec: 0.04300, operational_temp_k: 294 },
+                { obs_id: 'OBS-03', agency_id: 'AG-01', name: 'Chandra X-Ray Observatory', orbit_regime: 'HEO Elliptical (133k km)', wavelength_band: 'Soft/Hard X-Ray (0.1-10 keV)', aperture_m: 1.20, angular_res_arcsec: 0.50000, operational_temp_k: 153 },
+                { obs_id: 'OBS-04', agency_id: 'AG-02', name: 'AstroSat Multi-Wavelength', orbit_regime: 'LEO 650 km Equatorial', wavelength_band: 'Far-UV to Hard X-Ray', aperture_m: 0.38, angular_res_arcsec: 1.80000, operational_temp_k: 280 },
+                { obs_id: 'OBS-05', agency_id: 'AG-03', name: 'Event Horizon Telescope (EHT)', orbit_regime: 'Global VLBI Baseline', wavelength_band: 'Millimeter Radio (230 GHz)', aperture_m: 10000.00, angular_res_arcsec: 0.00002, operational_temp_k: 4 },
+                { obs_id: 'OBS-06', agency_id: 'AG-03', name: 'Gaia Astrometric Observatory', orbit_regime: 'Sun-Earth L2 Lissajous', wavelength_band: 'Optical G-Band (330-1050 nm)', aperture_m: 1.45, angular_res_arcsec: 0.00001, operational_temp_k: 130 }
+            ],
+
+            SCIENTISTS_DISCOVERIES: [
+                { disc_id: 'DSC-01', target_body_id: 'CB-103', obs_id: 'OBS-04', scientist_name: 'Aryabhata', nationality: 'India', discovery_year: 499, law_or_discovery: 'Sidereal Earth Rotation & Lunar/Solar Eclipse Geometry', core_equation: 'T_sid = 23h 56m 4.1s', nobel_status: 'Classical Era' },
+                { disc_id: 'DSC-02', target_body_id: 'CB-105', obs_id: 'OBS-02', scientist_name: 'Galileo Galilei', nationality: 'Italy', discovery_year: 1610, law_or_discovery: 'Galilean Moons of Jupiter & Phases of Venus', core_equation: 'θ_res = 1.22 λ / D', nobel_status: 'Renaissance' },
+                { disc_id: 'DSC-03', target_body_id: 'CB-104', obs_id: 'OBS-06', scientist_name: 'Johannes Kepler', nationality: 'Germany', discovery_year: 1619, law_or_discovery: 'Three Laws of Elliptical Planetary Motion', core_equation: 'T² = (4π² / GM) a³', nobel_status: 'Scientific Rev.' },
+                { disc_id: 'DSC-04', target_body_id: 'CB-103', obs_id: 'OBS-02', scientist_name: 'Sir Isaac Newton', nationality: 'United Kingdom', discovery_year: 1687, law_or_discovery: 'Universal Gravitation & Orbital Escape Velocity', core_equation: 'F = G(m₁m₂)/r²  |  v_e = √(2GM/r)', nobel_status: 'Principia 1687' },
+                { disc_id: 'DSC-05', target_body_id: 'CB-108', obs_id: 'OBS-05', scientist_name: 'Albert Einstein', nationality: 'Germany / USA', discovery_year: 1915, law_or_discovery: 'General Relativity & Gravitational Lensing', core_equation: 'G_μν + Λg_μν = (8πG/c⁴) T_μν', nobel_status: 'Nobel Prize 1921' },
+                { disc_id: 'DSC-06', target_body_id: 'CB-109', obs_id: 'OBS-03', scientist_name: 'Subrahmanyan Chandrasekhar', nationality: 'India / USA', discovery_year: 1930, law_or_discovery: 'Chandrasekhar Relativistic White Dwarf Mass Limit', core_equation: 'M_Ch ≈ 1.44 M☉', nobel_status: 'Nobel Prize 1983' },
+                { disc_id: 'DSC-07', target_body_id: 'CB-110', obs_id: 'OBS-02', scientist_name: 'Edwin Powell Hubble', nationality: 'United States', discovery_year: 1929, law_or_discovery: 'Extragalactic Cepheids & Metric Expansion of Space', core_equation: 'v = H₀ · D', nobel_status: 'Hubble-Lemaître' },
+                { disc_id: 'DSC-08', target_body_id: 'CB-108', obs_id: 'OBS-05', scientist_name: 'Stephen William Hawking', nationality: 'United Kingdom', discovery_year: 1974, law_or_discovery: 'Black Hole Thermodynamics & Hawking Radiation', core_equation: 'T_H = ℏc³ / (8πGMk_B)', nobel_status: 'Copley Medal' },
+                { disc_id: 'DSC-09', target_body_id: 'CB-101', obs_id: 'OBS-04', scientist_name: 'Vikram Ambalal Sarabhai', nationality: 'India', discovery_year: 1969, law_or_discovery: 'Cosmic Ray Anisotropy & Indian Space Program Architecture', core_equation: 'Δv = I_sp g₀ ln(m₀/m_f)', nobel_status: 'Padma Vibhushan' }
+            ]
+        };
+
+        let DB = JSON.parse(JSON.stringify(SEED_DB));
+        let activeBodyId = 'CB-104'; // Default to Mars (Sol-IV) as shown in reference screenshot
+        let outputFormat = 'MYSQL';
+
+        /* ----------------------------------------------------------------------------
+           3. PRESET RELATIONAL SQL QUERIES (FOR 1-CLICK EXECUTION)
+           ---------------------------------------------------------------------------- */
+        const PRESET_SQL_LIST = [
+            {
+                title: '01. 3-Table JOIN: Bodies, Stars & Atmospheres',
+                badge: '3-TABLE JOIN',
+                sql: `SELECT b.body_id, b.name, b.body_type, s.star_name, a.primary_gas, a.pressure_bar, b.gravity_ms2, b.esi_index
+FROM CELESTIAL_BODIES b
+JOIN STAR_SYSTEMS s ON b.system_id = s.system_id
+LEFT JOIN ATMOSPHERES a ON b.body_id = a.body_id
+ORDER BY b.esi_index DESC;`
+            },
+            {
+                title: '02. 3-Table JOIN: Missions, Agencies & Targets',
+                badge: 'INNER JOIN',
+                sql: `SELECT m.mission_id, m.mission_name, ag.agency_code, b.name AS target_body, m.status, m.delta_v_kms, m.payload_kg
+FROM SPACE_MISSIONS m
+JOIN SPACE_AGENCIES ag ON m.agency_id = ag.agency_id
+JOIN CELESTIAL_BODIES b ON m.target_body_id = b.body_id
+ORDER BY m.launch_date DESC;`
+            },
+            {
+                title: '03. GROUP BY: Agency Mission Count & Total Payload',
+                badge: 'AGGREGATE',
+                sql: `SELECT ag.agency_code, ag.country, COUNT(m.mission_id) AS total_missions, SUM(m.payload_kg) AS total_payload_kg, ag.annual_budget_usd_b
+FROM SPACE_AGENCIES ag
+LEFT JOIN SPACE_MISSIONS m ON ag.agency_id = m.agency_id
+GROUP BY ag.agency_code, ag.country, ag.annual_budget_usd_b
+ORDER BY total_missions DESC;`
+            },
+            {
+                title: '04. 3-Table JOIN: Pioneers, Bodies & Observatories',
+                badge: 'FK JOIN',
+                sql: `SELECT d.disc_id, d.scientist_name, d.discovery_year, d.core_equation, b.name AS related_body, o.name AS observatory
+FROM SCIENTISTS_DISCOVERIES d
+JOIN CELESTIAL_BODIES b ON d.target_body_id = b.body_id
+JOIN OBSERVATORIES o ON d.obs_id = o.obs_id
+ORDER BY d.discovery_year ASC;`
+            },
+            {
+                title: '05. JOIN: Galaxies & Host Star Systems',
+                badge: '1:N JOIN',
+                sql: `SELECT g.galaxy_id, g.name AS galaxy_name, g.morphology, s.star_name, s.spectral_class, s.temp_kelvin, s.distance_ly
+FROM GALAXIES g
+JOIN STAR_SYSTEMS s ON g.galaxy_id = s.galaxy_id
+ORDER BY s.temp_kelvin DESC;`
+            },
+            {
+                title: '06. JOIN: Observatories & Operating Agencies',
+                badge: 'SENSORS',
+                sql: `SELECT o.obs_id, o.name AS observatory, ag.agency_code, o.orbit_regime, o.wavelength_band, o.aperture_m, o.operational_temp_k
+FROM OBSERVATORIES o
+JOIN SPACE_AGENCIES ag ON o.agency_id = ag.agency_id
+ORDER BY o.aperture_m DESC;`
+            },
+            {
+                title: '07. Subquery: Above-Average Gravity Bodies',
+                badge: 'SUBQUERY',
+                sql: `SELECT body_id, name, body_type, mass_scale, radius_km, gravity_ms2
+FROM CELESTIAL_BODIES
+WHERE gravity_ms2 > (SELECT AVG(gravity_ms2) FROM CELESTIAL_BODIES WHERE body_type = 'Terrestrial Planet')
+ORDER BY gravity_ms2 DESC;`
+            },
+            {
+                title: '08. Schema Metadata: SHOW TABLES',
+                badge: 'DDL META',
+                sql: `SHOW TABLES;`
+            }
+        ];
+
+        /* ----------------------------------------------------------------------------
+           4. PROCEDURAL CANVAS TEXTURES + THREE.JS 3D OBSERVATORY
+           ---------------------------------------------------------------------------- */
+        let scene, camera, renderer, objectGroup, starField;
+        let isOrrery = false;
+        let isWireframe = false;
+        let spinSpeed = 1.0;
+        let orreryNodes = [];
+
+        let isPointerDown = false;
+        let prevPointer = { x: 0, y: 0 };
+        let spherical = { r: 5.5, theta: 0.4, phi: 1.4 };
+        let targetSpherical = { r: 5.5, theta: 0.4, phi: 1.4 };
+
+        function createPlanetTexture(type) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            if (type === 'mars') {
+                const grad = ctx.createLinearGradient(0, 0, 0, 256);
+                grad.addColorStop(0, '#fca5a5');
+                grad.addColorStop(0.15, '#ea580c');
+                grad.addColorStop(0.5, '#c2410c');
+                grad.addColorStop(0.85, '#9a3412');
+                grad.addColorStop(1, '#fed7aa');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, 512, 256);
+
+                // Polar ice cap highlight
+                ctx.fillStyle = 'rgba(255, 247, 237, 0.85)';
+                ctx.fillRect(0, 0, 512, 16);
+
+                // Darker basaltic plains & lighter dust basins
+                for (let i = 0; i < 42; i++) {
+                    ctx.fillStyle = i % 2 === 0 ? 'rgba(251, 146, 60, 0.42)' : 'rgba(124, 45, 18, 0.35)';
+                    ctx.beginPath();
+                    ctx.ellipse(
+                        Math.random() * 512,
+                        25 + Math.random() * 205,
+                        18 + Math.random() * 45,
+                        6 + Math.random() * 16,
+                        (Math.random() - 0.5) * 0.4,
+                        0, Math.PI * 2
+                    );
+                    ctx.fill();
+                }
+            } else if (type === 'earth') {
+                ctx.fillStyle = '#0369a1';
+                ctx.fillRect(0, 0, 512, 256);
+                ctx.fillStyle = '#f8fafc';
+                ctx.fillRect(0, 0, 512, 14);
+                ctx.fillRect(0, 242, 512, 14);
+                for (let i = 0; i < 35; i++) {
+                    ctx.fillStyle = i % 3 === 0 ? 'rgba(255,255,255,0.35)' : 'rgba(16, 185, 129, 0.65)';
+                    ctx.beginPath();
+                    ctx.ellipse(Math.random() * 512, 24 + Math.random() * 208, 22 + Math.random() * 48, 10 + Math.random() * 22, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            } else if (type === 'jupiter' || type === 'saturn') {
+                const bands = type === 'jupiter'
+                    ? ['#78350f', '#d97706', '#fef3c7', '#b45309', '#92400e', '#f59e0b', '#78350f']
+                    : ['#713f12', '#eab308', '#fef08a', '#ca8a04', '#a16207', '#fde047', '#713f12'];
+                const bh = 256 / bands.length;
+                bands.forEach((col, i) => {
+                    ctx.fillStyle = col;
+                    ctx.fillRect(0, i * bh, 512, bh + 2);
+                });
+                if (type === 'jupiter') {
+                    ctx.fillStyle = '#dc2626';
+                    ctx.beginPath();
+                    ctx.ellipse(260, 165, 32, 16, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            } else if (type === 'neptune') {
+                const grad = ctx.createLinearGradient(0, 0, 0, 256);
+                grad.addColorStop(0, '#1e3a8a');
+                grad.addColorStop(0.5, '#2563eb');
+                grad.addColorStop(1, '#1d4ed8');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, 512, 256);
+                for (let i = 0; i < 18; i++) {
+                    ctx.fillStyle = 'rgba(147, 197, 253, 0.35)';
+                    ctx.fillRect(Math.random() * 480, Math.random() * 240, 60, 4);
+                }
+            } else if (type === 'sun') {
+                const grad = ctx.createLinearGradient(0, 0, 0, 256);
+                grad.addColorStop(0, '#ea580c');
+                grad.addColorStop(0.5, '#facc15');
+                grad.addColorStop(1, '#ea580c');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, 512, 256);
+            }
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.ClampToEdgeWrapping;
+            return tex;
+        }
+
+        function initThreeStage() {
+            const stage = document.getElementById('three-stage');
+            const w = stage.clientWidth || 1200;
+            const h = stage.clientHeight || 620;
+
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(42, w / h, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(w, h);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            stage.innerHTML = '';
+            stage.appendChild(renderer.domElement);
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.72));
+            const sunLight = new THREE.DirectionalLight(0xfff7ed, 1.45);
+            sunLight.position.set(5, 8, 7);
+            scene.add(sunLight);
+
+            objectGroup = new THREE.Group();
+            scene.add(objectGroup);
+
+            // Subtle Starfield
+            const starGeo = new THREE.BufferGeometry();
+            const pos = new Float32Array(1200 * 3);
+            for (let i = 0; i < pos.length; i++) pos[i] = (Math.random() - 0.5) * 160;
+            starGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            starField = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xc4b5fd, size: 0.18, transparent: true, opacity: 0.65 }));
+            scene.add(starField);
+
+            // Pointer Orbit Controls
+            const dom = renderer.domElement;
+            dom.addEventListener('mousedown', e => {
+                isPointerDown = true;
+                prevPointer = { x: e.clientX, y: e.clientY };
+            });
+            window.addEventListener('mouseup', () => { isPointerDown = false; });
+            window.addEventListener('mousemove', e => {
+                if (!isPointerDown) return;
+                targetSpherical.theta -= (e.clientX - prevPointer.x) * 0.007;
+                targetSpherical.phi = Math.max(0.25, Math.min(Math.PI - 0.25, targetSpherical.phi - (e.clientY - prevPointer.y) * 0.007));
+                prevPointer = { x: e.clientX, y: e.clientY };
+            });
+            dom.addEventListener('wheel', e => {
+                e.preventDefault();
+                targetSpherical.r = Math.max(3.3, Math.min(22, targetSpherical.r + e.deltaY * 0.004));
+            }, { passive: false });
+
+            // Touch Support
+            dom.addEventListener('touchstart', e => {
+                if (e.touches.length === 1) {
+                    isPointerDown = true;
+                    prevPointer = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                }
+            }, { passive: true });
+            window.addEventListener('touchend', () => { isPointerDown = false; });
+            window.addEventListener('touchmove', e => {
+                if (!isPointerDown || e.touches.length !== 1) return;
+                targetSpherical.theta -= (e.touches[0].clientX - prevPointer.x) * 0.007;
+                targetSpherical.phi = Math.max(0.25, Math.min(Math.PI - 0.25, targetSpherical.phi - (e.touches[0].clientY - prevPointer.y) * 0.007));
+                prevPointer = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }, { passive: true });
+
+            window.addEventListener('resize', () => {
+                const nw = stage.clientWidth;
+                const nh = stage.clientHeight;
+                if (nw && nh) {
+                    camera.aspect = nw / nh;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(nw, nh);
+                }
+            });
+
+            document.getElementById('stage-speed-slider').addEventListener('input', e => {
+                spinSpeed = parseFloat(e.target.value);
+            });
+
+            selectObservatoryBody('CB-104'); // Start on Mars (Sol-IV)
+            animateStage();
+        }
+
+        function buildModelGeometry(modelKey) {
+            while (objectGroup.children.length > 0) objectGroup.remove(objectGroup.children[0]);
+            orreryNodes = [];
+
+            if (isOrrery) {
+                buildSolarSystemOrrery();
+                return;
+            }
+
+            if (['mars', 'earth', 'jupiter', 'neptune', 'sun'].includes(modelKey)) {
+                const radius = modelKey === 'jupiter' ? 1.85 : modelKey === 'sun' ? 1.82 : 1.68;
+                const tex = createPlanetTexture(modelKey);
+                const mat = modelKey === 'sun'
+                    ? new THREE.MeshBasicMaterial({ map: tex, wireframe: isWireframe })
+                    : new THREE.MeshStandardMaterial({ map: tex, roughness: 0.55, metalness: 0.08, wireframe: isWireframe });
+                const sphere = new THREE.Mesh(new THREE.SphereGeometry(radius, 64, 64), mat);
+                objectGroup.add(sphere);
+
+                if (modelKey === 'earth' || modelKey === 'sun') {
+                    const halo = new THREE.Mesh(
+                        new THREE.SphereGeometry(radius * 1.05, 36, 36),
+                        new THREE.MeshBasicMaterial({ color: modelKey === 'sun' ? 0xfbbf24 : 0x38bdf8, transparent: true, opacity: 0.16, wireframe: true })
+                    );
+                    objectGroup.add(halo);
+                }
+            } else if (modelKey === 'saturn') {
+                const tex = createPlanetTexture('saturn');
+                const planet = new THREE.Mesh(
+                    new THREE.SphereGeometry(1.42, 56, 56),
+                    new THREE.MeshStandardMaterial({ map: tex, roughness: 0.55, wireframe: isWireframe })
+                );
+                const rings = new THREE.Mesh(
+                    new THREE.RingGeometry(1.85, 3.15, 72),
+                    new THREE.MeshStandardMaterial({ color: 0xfde68a, side: THREE.DoubleSide, transparent: true, opacity: 0.78, wireframe: isWireframe })
+                );
+                rings.rotation.x = Math.PI / 2.25;
+                objectGroup.add(planet, rings);
+            } else if (modelKey === 'blackhole') {
+                const horizon = new THREE.Mesh(
+                    new THREE.SphereGeometry(1.12, 48, 48),
+                    new THREE.MeshBasicMaterial({ color: 0x000000 })
+                );
+                const disk = new THREE.Mesh(
+                    new THREE.TorusGeometry(2.25, 0.34, 24, 100),
+                    new THREE.MeshBasicMaterial({ color: 0xf97316, wireframe: true })
+                );
+                disk.rotation.x = Math.PI / 2.2;
+                objectGroup.add(horizon, disk);
+            } else if (modelKey === 'pulsar') {
+                const core = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.92, 40, 40),
+                    new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: isWireframe })
+                );
+                const coneGeo = new THREE.ConeGeometry(0.32, 3.8, 24);
+                const coneMat = new THREE.MeshBasicMaterial({ color: 0xe879f9, transparent: true, opacity: 0.45, wireframe: true });
+                const j1 = new THREE.Mesh(coneGeo, coneMat); j1.position.y = 1.9;
+                const j2 = new THREE.Mesh(coneGeo, coneMat); j2.position.y = -1.9; j2.rotation.x = Math.PI;
+                objectGroup.add(core, j1, j2);
+            } else if (modelKey === 'galaxy') {
+                const count = 2400;
+                const geo = new THREE.BufferGeometry();
+                const pts = new Float32Array(count * 3);
+                for (let i = 0; i < count; i++) {
+                    const r = Math.random() * 3.1;
+                    const angle = r * 2.7 + (i % 3) * ((Math.PI * 2) / 3);
+                    pts[i * 3] = Math.cos(angle) * r + (Math.random() - 0.5) * 0.2;
+                    pts[i * 3 + 1] = (Math.random() - 0.5) * 0.18;
+                    pts[i * 3 + 2] = Math.sin(angle) * r + (Math.random() - 0.5) * 0.2;
+                }
+                geo.setAttribute('position', new THREE.BufferAttribute(pts, 3));
+                objectGroup.add(new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xf472b6, size: 0.05 })));
+            } else if (modelKey === 'jwst') {
+                const hexGroup = new THREE.Group();
+                const hexGeo = new THREE.CylinderGeometry(0.34, 0.34, 0.08, 6);
+                const hexMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.85, roughness: 0.2, wireframe: isWireframe });
+                [[0, 0], [0.62, 0], [-0.62, 0], [0.31, 0.54], [-0.31, 0.54], [0.31, -0.54], [-0.31, -0.54]].forEach(([x, y]) => {
+                    const seg = new THREE.Mesh(hexGeo, hexMat);
+                    seg.rotation.x = Math.PI / 2;
+                    seg.position.set(x, y, 0);
+                    hexGroup.add(seg);
+                });
+                const sunshield = new THREE.Mesh(
+                    new THREE.BoxGeometry(3.0, 0.07, 1.9),
+                    new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.6, roughness: 0.35, wireframe: isWireframe })
+                );
+                sunshield.position.y = -1.05;
+                objectGroup.add(hexGroup, sunshield);
+            }
+        }
+
+        function buildSolarSystemOrrery() {
+            const sun = new THREE.Mesh(
+                new THREE.SphereGeometry(0.85, 32, 32),
+                new THREE.MeshBasicMaterial({ map: createPlanetTexture('sun') })
+            );
+            objectGroup.add(sun);
+
+            const planets = [
+                { r: 1.6, size: 0.16, speed: 1.5, tex: 'mars' },
+                { r: 2.4, size: 0.24, speed: 1.1, tex: 'earth' },
+                { r: 3.3, size: 0.20, speed: 0.85, tex: 'mars' },
+                { r: 4.5, size: 0.42, speed: 0.48, tex: 'jupiter' },
+                { r: 5.8, size: 0.35, speed: 0.32, tex: 'saturn' },
+                { r: 7.0, size: 0.28, speed: 0.21, tex: 'neptune' }
+            ];
+
+            planets.forEach((p, idx) => {
+                const orbitRing = new THREE.Mesh(
+                    new THREE.RingGeometry(p.r - 0.015, p.r + 0.015, 64),
+                    new THREE.MeshBasicMaterial({ color: 0xf472b6, side: THREE.DoubleSide, transparent: true, opacity: 0.22 })
+                );
+                orbitRing.rotation.x = Math.PI / 2;
+                objectGroup.add(orbitRing);
+
+                const mesh = new THREE.Mesh(
+                    new THREE.SphereGeometry(p.size, 24, 24),
+                    new THREE.MeshStandardMaterial({ map: createPlanetTexture(p.tex), roughness: 0.6, wireframe: isWireframe })
+                );
+                objectGroup.add(mesh);
+                orreryNodes.push({ mesh, r: p.r, speed: p.speed, angle: idx * 1.1 });
+            });
+        }
+
+        function animateStage() {
+            requestAnimationFrame(animateStage);
+            spherical.r += (targetSpherical.r - spherical.r) * 0.08;
+            spherical.theta += (targetSpherical.theta - spherical.theta) * 0.08;
+            spherical.phi += (targetSpherical.phi - spherical.phi) * 0.08;
+
+            camera.position.set(
+                spherical.r * Math.sin(spherical.phi) * Math.sin(spherical.theta),
+                spherical.r * Math.cos(spherical.phi),
+                spherical.r * Math.sin(spherical.phi) * Math.cos(spherical.theta)
+            );
+            camera.lookAt(0, 0, 0);
+
+            if (!isOrrery) {
+                objectGroup.rotation.y += 0.0042 * spinSpeed;
+            } else {
+                orreryNodes.forEach(n => {
+                    n.angle += 0.008 * n.speed * spinSpeed;
+                    n.mesh.position.set(Math.cos(n.angle) * n.r, 0, Math.sin(n.angle) * n.r);
+                });
+            }
+            if (starField) starField.rotation.y += 0.0002;
+            renderer.render(scene, camera);
+        }
+
+        /* ----------------------------------------------------------------------------
+           5. 3D OBSERVATORY INTERACTION & DOCK BAR
+           ---------------------------------------------------------------------------- */
+        function selectObservatoryBody(bodyId) {
+            activeBodyId = bodyId;
+            if (isOrrery) {
+                isOrrery = false;
+                document.getElementById('orrery-toggle-label').textContent = 'Switch to Solar System Orrery';
+                targetSpherical.r = 5.5;
+            }
+
+            const body = DB.CELESTIAL_BODIES.find(b => b.body_id === bodyId) || DB.CELESTIAL_BODIES[1];
+            buildModelGeometry(body.model_key || 'mars');
+            renderBottomModelDock();
+
+            document.getElementById('hud-category-pk').textContent = `${body.body_type.toUpperCase()} // PK: ${body.body_id}`;
+            document.getElementById('hud-body-title').textContent = body.name;
+            document.getElementById('hud-body-desc').textContent = body.desc || 'Normalized celestial body record linked across star systems, atmospheres, and space missions.';
+
+            document.getElementById('hud-stat-mass').textContent = body.mass_scale;
+            document.getElementById('hud-stat-radius').textContent = `${Number(body.radius_km).toLocaleString()} km`;
+            document.getElementById('hud-stat-gravity').textContent = `${body.gravity_ms2} m/s²`;
+            document.getElementById('hud-stat-temp').textContent = `${body.temp_k} K`;
+
+            // Linked Missions & Laws via FK
+            const missions = DB.SPACE_MISSIONS.filter(m => m.target_body_id === body.body_id).map(m => m.mission_name);
+            const laws = DB.SCIENTISTS_DISCOVERIES.filter(d => d.target_body_id === body.body_id).map(d => d.scientist_name);
+            const combined = [...missions, ...laws];
+            document.getElementById('hud-stat-links').textContent = combined.length
+                ? combined.join(' • ')
+                : 'General Relativity • Deep Space Telemetry';
+        }
+
+        function renderBottomModelDock() {
+            const dock = document.getElementById('bottom-model-dock');
+            dock.innerHTML = DB.CELESTIAL_BODIES.slice(0, 10).map(b => {
+                const selected = b.body_id === activeBodyId && !isOrrery;
+                return `
+                <button onclick="selectObservatoryBody('${b.body_id}')" class="px-3.5 py-1 rounded-full text-xs font-mono whitespace-nowrap transition ${selected ? 'pill-selected text-white font-semibold' : 'text-slate-300 hover:text-white'}">
+                    ${b.dock_label || b.name}
+                </button>`;
+            }).join('');
+        }
+
+        function toggleOrreryMode() {
+            isOrrery = !isOrrery;
+            document.getElementById('orrery-toggle-label').textContent = isOrrery
+                ? 'Back to Single Object 3D'
+                : 'Switch to Solar System Orrery';
+            targetSpherical.r = isOrrery ? 12.5 : 5.5;
+            const body = DB.CELESTIAL_BODIES.find(b => b.body_id === activeBodyId) || DB.CELESTIAL_BODIES[1];
+            buildModelGeometry(body.model_key || 'mars');
+            renderBottomModelDock();
+        }
+
+        function toggleWireframeMode() {
+            isWireframe = !isWireframe;
+            const body = DB.CELESTIAL_BODIES.find(b => b.body_id === activeBodyId) || DB.CELESTIAL_BODIES[1];
+            buildModelGeometry(body.model_key || 'mars');
+        }
+
+        function resetStageCamera() {
+            targetSpherical = { r: isOrrery ? 12.5 : 5.5, theta: 0.4, phi: 1.4 };
+        }
+
+        function runBodyJoinInStudio() {
+            const sql = `SELECT b.body_id, b.name AS body_name, m.mission_name, m.status, d.scientist_name, d.core_equation
+FROM CELESTIAL_BODIES b
+LEFT JOIN SPACE_MISSIONS m ON b.body_id = m.target_body_id
+LEFT JOIN SCIENTISTS_DISCOVERIES d ON b.body_id = d.target_body_id
+WHERE b.body_id = '${activeBodyId}';`;
+            document.getElementById('sql-editor').value = sql;
+            switchStudioTab('TERMINAL');
+            runCustomSql();
+            document.getElementById('sec-studio').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        /* ----------------------------------------------------------------------------
+           6. RENDER CATALOG, MISSIONS, OBSERVATORIES & PIONEERS GRIDS
+           ---------------------------------------------------------------------------- */
+        function renderCatalogGrid(filterType) {
+            document.querySelectorAll('.cat-filter').forEach(btn => {
+                btn.className = 'cat-filter ui-card px-3.5 py-1.5 rounded-full text-xs font-mono text-slate-300';
+            });
+            const activeBtn = document.getElementById(`cat-btn-${filterType}`);
+            if (activeBtn) activeBtn.className = 'cat-filter pill-selected px-3.5 py-1.5 rounded-full text-xs font-mono';
+
+            const list = filterType === 'ALL'
+                ? DB.CELESTIAL_BODIES
+                : DB.CELESTIAL_BODIES.filter(b => {
+                    if (filterType === 'Gas Giant') return b.body_type === 'Gas Giant' || b.body_type === 'Ice Giant';
+                    return b.body_type === filterType;
+                });
+
+            const grid = document.getElementById('catalog-grid');
+            grid.innerHTML = list.map(b => {
+                const sys = DB.STAR_SYSTEMS.find(s => s.system_id === b.system_id) || {};
+                const atmo = DB.ATMOSPHERES.find(a => a.body_id === b.body_id);
+                return `
+                <div onclick="focusBodyFromCatalog('${b.body_id}')" class="ui-card tilt-interactive rounded-2xl p-4 flex flex-col justify-between space-y-3 cursor-pointer">
+                    <div>
+                        <div class="flex items-center justify-between text-[11px] font-mono">
+                            <span class="text-accent font-semibold">${b.body_id}</span>
+                            <span class="text-slate-400">${b.body_type}</span>
+                        </div>
+                        <h3 class="font-display font-bold text-base text-white mt-1.5">${b.name}</h3>
+                        <p class="text-[11px] font-mono text-sub mt-0.5">FK: ${sys.star_name || 'Sol'}</p>
+                    </div>
+                    <div class="space-y-1 pt-2.5 border-t border-white/10 font-mono text-[11px]">
+                        <div class="flex justify-between"><span class="text-slate-400">Mass:</span><span>${b.mass_scale}</span></div>
+                        <div class="flex justify-between"><span class="text-slate-400">Radius:</span><span>${Number(b.radius_km).toLocaleString()} km</span></div>
+                        <div class="flex justify-between"><span class="text-slate-400">Gravity:</span><span>${b.gravity_ms2} m/s²</span></div>
+                        <div class="flex justify-between"><span class="text-slate-400">Atmosphere:</span><span class="text-accent">${atmo ? atmo.primary_gas : 'Vacuum / Plasma'}</span></div>
+                    </div>
+                </div>`;
+            }).join('');
+            attachCardTilt();
+        }
+
+        function focusBodyFromCatalog(bodyId) {
+            selectObservatoryBody(bodyId);
+            document.getElementById('sec-observatory').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function renderMissionsGrid(agencyFilter) {
+            document.querySelectorAll('.mis-filter').forEach(btn => {
+                btn.className = 'mis-filter ui-card px-3.5 py-1.5 rounded-full text-xs font-mono text-slate-300';
+            });
+            const activeBtn = document.getElementById(`mis-btn-${agencyFilter}`);
+            if (activeBtn) activeBtn.className = 'mis-filter pill-selected px-3.5 py-1.5 rounded-full text-xs font-mono';
+
+            const rows = agencyFilter === 'ALL'
+                ? DB.SPACE_MISSIONS
+                : DB.SPACE_MISSIONS.filter(m => agencyFilter === 'AG-03' ? (m.agency_id === 'AG-03' || m.agency_id === 'AG-04') : m.agency_id === agencyFilter);
+
+            const grid = document.getElementById('missions-grid');
+            grid.innerHTML = rows.map(m => {
+                const ag = DB.SPACE_AGENCIES.find(a => a.agency_id === m.agency_id) || {};
+                const body = DB.CELESTIAL_BODIES.find(b => b.body_id === m.target_body_id) || {};
+                return `
+                <div class="ui-card tilt-interactive rounded-2xl p-5 flex flex-col justify-between space-y-3.5">
+                    <div>
+                        <div class="flex items-center justify-between text-xs font-mono">
+                            <span class="px-2.5 py-0.5 rounded-full pill-selected text-accent">${m.mission_id} • ${ag.agency_code || m.agency_id}</span>
+                            <span class="text-emerald-400">${m.status}</span>
+                        </div>
+                        <h3 class="font-display font-bold text-base text-white mt-2.5">${m.mission_name}</h3>
+                        <p class="text-[11px] font-mono text-sub mt-0.5">Target FK: ${body.name || m.target_body_id} (${m.mission_type})</p>
+                        <p class="text-xs text-slate-300 mt-2 leading-relaxed">${m.key_finding}</p>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 pt-3 border-t border-white/10 font-mono text-[11px]">
+                        <div><span class="text-slate-400 block">LAUNCH</span>${m.launch_date}</div>
+                        <div><span class="text-slate-400 block">DELTA-V</span>${m.delta_v_kms} km/s</div>
+                        <div><span class="text-slate-400 block">PAYLOAD</span>${m.payload_kg} kg</div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            // Observatories strip
+            const obsGrid = document.getElementById('observatories-grid');
+            obsGrid.innerHTML = DB.OBSERVATORIES.map(o => {
+                const ag = DB.SPACE_AGENCIES.find(a => a.agency_id === o.agency_id) || {};
+                return `
+                <div class="ui-card rounded-xl p-3.5 flex flex-col justify-between space-y-2">
+                    <div>
+                        <div class="flex items-center justify-between text-[10px] font-mono">
+                            <span class="text-accent font-bold">${o.obs_id}</span>
+                            <span class="text-slate-400">${ag.agency_code || o.agency_id}</span>
+                        </div>
+                        <h4 class="font-display font-bold text-xs text-white mt-1">${o.name}</h4>
+                        <p class="text-[11px] font-mono text-sub mt-0.5">${o.wavelength_band}</p>
+                    </div>
+                    <div class="pt-2 border-t border-white/10 font-mono text-[10px] text-slate-400 flex justify-between">
+                        <span>Aperture: ${o.aperture_m}m</span>
+                        <span>${o.operational_temp_k} K</span>
+                    </div>
+                </div>`;
+            }).join('');
+
+            attachCardTilt();
+        }
+
+        function renderPioneersGrid() {
+            const grid = document.getElementById('pioneers-grid');
+            grid.innerHTML = DB.SCIENTISTS_DISCOVERIES.map(d => {
+                const body = DB.CELESTIAL_BODIES.find(b => b.body_id === d.target_body_id) || {};
+                const obs = DB.OBSERVATORIES.find(o => o.obs_id === d.obs_id) || {};
+                return `
+                <div class="ui-card tilt-interactive rounded-2xl p-5 flex flex-col justify-between space-y-3.5">
+                    <div>
+                        <div class="flex items-center justify-between text-xs font-mono">
+                            <span class="px-2.5 py-0.5 rounded-full pill-selected text-accent">${d.disc_id} • ${d.discovery_year}</span>
+                            <span class="text-amber-300">${d.nobel_status}</span>
+                        </div>
+                        <h3 class="font-display font-bold text-base text-white mt-2.5">${d.scientist_name}</h3>
+                        <p class="text-xs font-mono text-slate-400">${d.nationality}</p>
+                        <p class="text-xs text-slate-200 mt-2">${d.law_or_discovery}</p>
+                    </div>
+                    <div class="space-y-2 pt-3 border-t border-white/10 font-mono text-xs">
+                        <div class="p-2 rounded-xl bg-black/40 border border-white/10 text-amber-300 text-center font-semibold">${d.core_equation}</div>
+                        <div class="flex justify-between text-[10px] text-slate-400">
+                            <span>FK Body: ${body.dock_label || d.target_body_id}</span>
+                            <span>FK Obs: ${obs.obs_id || d.obs_id}</span>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+            attachCardTilt();
+        }
+
+        /* ----------------------------------------------------------------------------
+           7. IN-INTERFACE SQL EXECUTION ENGINE (ALASQL + METADATA COMMANDS)
+           ---------------------------------------------------------------------------- */
+        function syncRelationalEngine() {
+            const totalTuples = Object.values(DB).reduce((acc, arr) => acc + arr.length, 0);
+            const counter = document.getElementById('db-tuple-counter');
+            if (counter) counter.textContent = `● 8 NORMALIZED TABLES (3NF) • ${totalTuples} TUPLES`;
+
+            if (typeof alasql !== 'undefined') {
+                Object.keys(DB).forEach(tName => {
+                    alasql(`DROP TABLE IF EXISTS ${tName}`);
+                    alasql(`CREATE TABLE ${tName}`);
+                    alasql.tables[tName].data = JSON.parse(JSON.stringify(DB[tName]));
+                });
+            }
+        }
+
+        function executeSqlStatement(rawSql) {
+            const t0 = performance.now();
+            const clean = rawSql.trim().replace(/;+\s*$/, '').trim();
+            const upper = clean.toUpperCase();
+
+            if (upper === 'SHOW TABLES') {
+                const rows = Object.keys(SCHEMA_DEFS).map(t => ({
+                    Tables_in_cosmos_db: t,
+                    primary_key: SCHEMA_DEFS[t].pk,
+                    rows: DB[t].length,
+                    normal_form: '3NF'
+                }));
+                return { rows, ms: (performance.now() - t0).toFixed(2), label: `${rows.length} tables in schema` };
+            }
+
+            if (upper.startsWith('DESC ') || upper.startsWith('DESCRIBE ')) {
+                const tName = (clean.split(/\s+/)[1] || '').toUpperCase();
+                if (!SCHEMA_DEFS[tName]) {
+                    throw new Error(`ERROR 1146 (42S02): Table 'cosmos_db.${tName}' doesn't exist`);
+                }
+                const rows = SCHEMA_DEFS[tName].columns.map(c => ({
+                    Field: c.name,
+                    Type: c.type,
+                    Null: c.key === 'PK' || c.key === 'NOT NULL' ? 'NO' : 'YES',
+                    Key: c.key
+                }));
+                return { rows, ms: (performance.now() - t0).toFixed(2), label: `${rows.length} columns in ${tName}` };
+            }
+
+            if (typeof alasql !== 'undefined') {
+                const res = alasql(clean);
+                if (upper.startsWith('INSERT') || upper.startsWith('UPDATE') || upper.startsWith('DELETE')) {
+                    Object.keys(DB).forEach(tName => {
+                        if (alasql.tables[tName] && alasql.tables[tName].data) {
+                            DB[tName] = JSON.parse(JSON.stringify(alasql.tables[tName].data));
+                        }
+                    });
+                    syncRelationalEngine();
+                    refreshAllSections();
+                    const count = typeof res === 'number' ? res : 1;
+                    return {
+                        rows: [{ status: 'Query OK', rows_affected: count, statement: clean }],
+                        ms: (performance.now() - t0).toFixed(2),
+                        label: `${count} row(s) affected`
+                    };
+                }
+                if (Array.isArray(res)) {
+                    return {
+                        rows: res,
+                        ms: (performance.now() - t0).toFixed(2),
+                        label: `${res.length} row(s) in set`
+                    };
+                }
+            }
+
+            throw new Error('SQL syntax error near query expression.');
+        }
+
+        function renderStudioControls() {
+            const bar = document.getElementById('studio-table-bar');
+            bar.innerHTML = Object.keys(SCHEMA_DEFS).map(tName => `
+                <div class="ui-card rounded-xl p-2.5 flex flex-col justify-between">
+                    <div class="flex items-center justify-between gap-1">
+                        <button onclick="loadTableQuery('${tName}')" class="text-[11px] font-mono font-bold text-accent hover:underline truncate text-left">
+                            ${tName}
+                        </button>
+                        <button onclick="loadDescQuery('${tName}')" class="px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 text-[9px] font-mono text-slate-300">
+                            DESC
+                        </button>
+                    </div>
+                    <div class="flex items-center justify-between text-[10px] font-mono text-slate-400 mt-1">
+                        <span>PK: ${SCHEMA_DEFS[tName].pk}</span>
+                        <span>${DB[tName].length}r</span>
+                    </div>
+                </div>
+            `).join('');
+
+            const presetContainer = document.getElementById('studio-presets-list');
+            presetContainer.innerHTML = PRESET_SQL_LIST.map((p, i) => `
+                <button onclick="selectPresetQuery(${i})" class="w-full text-left p-2.5 rounded-xl bg-black/30 hover:bg-black/50 border border-white/10 hover:border-pink-400/50 transition space-y-1">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="font-mono font-semibold text-xs text-white">${p.title}</span>
+                        <span class="text-[9px] font-mono px-2 py-0.5 rounded-full pill-selected text-accent shrink-0">${p.badge}</span>
+                    </div>
+                    <p class="font-mono text-[10px] text-slate-400 truncate">${p.sql.replace(/\s+/g, ' ')}</p>
+                </button>
+            `).join('');
+
+            const schemaGrid = document.getElementById('er-schema-cards');
+            schemaGrid.innerHTML = Object.keys(SCHEMA_DEFS).map((tName, idx) => {
+                const def = SCHEMA_DEFS[tName];
+                const cols = def.columns.map(c => `
+                    <div class="flex items-center justify-between py-1 border-b border-white/5">
+                        <span class="${c.key === 'PK' ? 'text-amber-300 font-bold' : c.key === 'FK' ? 'text-accent' : 'text-slate-200'}">
+                            ${c.key === 'PK' ? '🔑 ' : c.key === 'FK' ? '🔗 ' : ''}${c.name}
+                        </span>
+                        <span class="text-[10px] text-slate-400">${c.type}</span>
+                    </div>
+                `).join('');
+
+                return `
+                <div class="ui-card rounded-2xl p-4 flex flex-col justify-between space-y-3">
+                    <div>
+                        <div class="flex items-center justify-between border-b border-white/10 pb-2 mb-2">
+                            <span class="font-display font-bold text-xs text-accent">0${idx + 1}. ${tName}</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full pill-selected">${DB[tName].length} rows</span>
+                        </div>
+                        <div>${cols}</div>
+                    </div>
+                    <div class="text-[10px] text-slate-400 pt-2 border-t border-white/10">
+                        FK: ${def.fk}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function selectPresetQuery(index) {
+            document.getElementById('sql-editor').value = PRESET_SQL_LIST[index].sql;
+            runCustomSql();
+        }
+
+        function loadTableQuery(tName) {
+            document.getElementById('sql-editor').value = `SELECT * FROM ${tName};`;
+            switchStudioTab('TERMINAL');
+            runCustomSql();
+            document.getElementById('sec-studio').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function loadDescQuery(tName) {
+            document.getElementById('sql-editor').value = `DESC ${tName};`;
+            switchStudioTab('TERMINAL');
+            runCustomSql();
+        }
+
+        function setOutputFormat(fmt) {
+            outputFormat = fmt;
+            document.getElementById('fmt-mysql').className = fmt === 'MYSQL'
+                ? 'px-3 py-1.5 rounded-lg pill-selected'
+                : 'px-3 py-1.5 rounded-lg text-slate-400 hover:text-white';
+            document.getElementById('fmt-sqlplus').className = fmt === 'SQLPLUS'
+                ? 'px-3 py-1.5 rounded-lg pill-selected'
+                : 'px-3 py-1.5 rounded-lg text-slate-400 hover:text-white';
+            runCustomSql();
+        }
+
+        function runCustomSql() {
+            const sql = document.getElementById('sql-editor').value;
+            const statusEl = document.getElementById('sql-exec-status');
+            const metaEl = document.getElementById('sql-exec-meta');
+            const outEl = document.getElementById('sql-result-container');
+
+            try {
+                const res = executeSqlStatement(sql);
+                statusEl.className = 'text-emerald-400';
+                statusEl.textContent = `● ${outputFormat === 'SQLPLUS' ? 'SQL*Plus Spool Complete' : 'MySQL 8.0 Query OK'}`;
+                metaEl.textContent = `${res.label} (${res.ms} ms)`;
+
+                if (!res.rows || res.rows.length === 0) {
+                    outEl.innerHTML = `<div class="p-6 text-center font-mono text-xs text-slate-400">Empty result set (0.00 sec)</div>`;
+                    return;
+                }
+
+                const hiddenCols = ['model_key', 'desc', 'dock_label'];
+                const cols = Object.keys(res.rows[0]).filter(k => !hiddenCols.includes(k));
+
+                if (outputFormat === 'SQLPLUS') {
+                    const widths = cols.map(c => {
+                        const maxVal = Math.max(...res.rows.map(r => String(r[c] ?? 'NULL').length));
+                        return Math.min(Math.max(c.length, maxVal), 30);
+                    });
+                    const header = cols.map((c, i) => c.toUpperCase().padEnd(widths[i])).join('  ');
+                    const divider = widths.map(w => '-'.repeat(w)).join('  ');
+                    const lines = res.rows.map(r =>
+                        cols.map((c, i) => String(r[c] ?? 'NULL').substring(0, widths[i]).padEnd(widths[i])).join('  ')
+                    ).join('\n');
+
+                    const spool = `SQL*Plus: Release 21.0.0.0.0 - Production\nSQL> ${sql.trim()}\n\n${header}\n${divider}\n${lines}\n\n${res.rows.length} row(s) selected.\nElapsed: 00:00:00.${String(Math.round(res.ms * 10)).padStart(4, '0')}`;
+                    outEl.innerHTML = `<pre class="sqlplus-terminal p-4 rounded-xl text-xs overflow-x-auto">${spool}</pre>`;
+                } else {
+                    const ths = cols.map(c => `<th class="px-3 py-2 text-left font-mono text-[11px] uppercase text-accent border-b border-white/15 bg-black/40 whitespace-nowrap">${c}</th>`).join('');
+                    const trs = res.rows.map(r => {
+                        const tds = cols.map(c => `<td class="px-3 py-2 font-mono text-xs border-b border-white/5 whitespace-nowrap">${r[c] !== null && r[c] !== undefined ? r[c] : '<span class="opacity-40">NULL</span>'}</td>`).join('');
+                        return `<tr class="hover:bg-white/5">${tds}</tr>`;
+                    }).join('');
+                    outEl.innerHTML = `<table class="w-full border-collapse"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
+                }
+            } catch (err) {
+                statusEl.className = 'text-rose-400';
+                statusEl.textContent = '● SQL Execution Error';
+                metaEl.textContent = 'Halted';
+                outEl.innerHTML = `<div class="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 font-mono text-xs text-rose-300">${err.message}</div>`;
+            }
+        }
+
+        function switchStudioTab(tab) {
+            document.getElementById('studio-panel-terminal').classList.toggle('hidden', tab !== 'TERMINAL');
+            document.getElementById('studio-panel-schema').classList.toggle('hidden', tab !== 'SCHEMA');
+            document.getElementById('tab-btn-terminal').className = tab === 'TERMINAL'
+                ? 'px-4 py-1.5 rounded-full pill-selected'
+                : 'px-4 py-1.5 rounded-full text-slate-400 hover:text-white';
+            document.getElementById('tab-btn-schema').className = tab === 'SCHEMA'
+                ? 'px-4 py-1.5 rounded-full pill-selected'
+                : 'px-4 py-1.5 rounded-full text-slate-400 hover:text-white';
+        }
+
+        /* ----------------------------------------------------------------------------
+           8. NAVIGATION, THEMES, INSERT MODAL & .SQL SCRIPT EXPORT
+           ---------------------------------------------------------------------------- */
+        function scrollToSection(id, btnEl) {
+            document.querySelectorAll('.nav-tab').forEach(b => {
+                b.className = 'nav-tab px-4 py-1.5 rounded-full text-xs font-mono text-slate-300 hover:text-white flex items-center gap-2 whitespace-nowrap transition';
+            });
+            if (btnEl) {
+                btnEl.className = 'nav-tab pill-selected px-4 py-1.5 rounded-full text-xs font-mono flex items-center gap-2 whitespace-nowrap transition';
+            }
+            document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function setTheme(themeName) {
+            document.documentElement.setAttribute('data-theme', themeName);
+            ['obsidian', 'solar', 'nebula', 'starlight'].forEach(t => {
+                const btn = document.getElementById(`theme-${t}`);
+                btn.className = t === themeName
+                    ? 'w-5 h-5 rounded-md ring-1 ring-pink-400 bg-white/15 flex items-center justify-center transition'
+                    : 'w-5 h-5 rounded-md flex items-center justify-center hover:bg-white/10 transition';
+            });
+            showToast(`Theme switched to ${themeName.toUpperCase()}`);
+        }
+
+        function openInsertModal() { document.getElementById('modal-insert').classList.remove('hidden'); }
+        function closeInsertModal() { document.getElementById('modal-insert').classList.add('hidden'); }
+
+        function submitInsertTuple() {
+            const body_id = document.getElementById('inp-id').value.trim();
+            const system_id = document.getElementById('inp-sys').value;
+            const name = document.getElementById('inp-name').value.trim();
+            const body_type = document.getElementById('inp-type').value;
+            const mass_scale = document.getElementById('inp-mass').value.trim();
+            const radius_km = parseFloat(document.getElementById('inp-radius').value) || 5860;
+            const gravity_ms2 = parseFloat(document.getElementById('inp-grav').value) || 8.01;
+            const temp_k = parseInt(document.getElementById('inp-temp').value, 10) || 251;
+
+            if (DB.CELESTIAL_BODIES.some(b => b.body_id === body_id)) {
+                showToast(`Primary Key ${body_id} already exists`);
+                return;
+            }
+
+            DB.CELESTIAL_BODIES.push({
+                body_id, system_id, name, dock_label: name, body_type,
+                mass_scale, radius_km, gravity_ms2, temp_k,
+                orbital_period_days: 6.10, esi_index: 0.85, model_key: 'earth',
+                desc: 'Inserted planetary record via live SQL DML workbench.'
+            });
+
+            syncRelationalEngine();
+            refreshAllSections();
+            closeInsertModal();
+            document.getElementById('sql-editor').value = `SELECT body_id, system_id, name, body_type, mass_scale, radius_km, gravity_ms2, temp_k FROM CELESTIAL_BODIES ORDER BY body_id DESC;`;
+            runCustomSql();
+            showToast(`Inserted ${name} (${body_id})`);
+        }
+
+        function resetAllTables() {
+            DB = JSON.parse(JSON.stringify(SEED_DB));
+            syncRelationalEngine();
+            refreshAllSections();
+            runCustomSql();
+            showToast('All 8 tables restored to default 3NF dataset');
+        }
+
+        function copyEditorSql() {
+            const ed = document.getElementById('sql-editor');
+            ed.select();
+            document.execCommand('copy');
+            showToast('SQL query copied to clipboard');
+        }
+
+        function exportFullSqlFile() {
+            let sqlOut = `-- ============================================================================\n`;
+            sqlOut += `-- COSMOS-DB: 8-TABLE 3NF RELATIONAL DATABASE SCRIPT (MySQL 8.0 & SQL*Plus)\n`;
+            sqlOut += `-- ============================================================================\n\n`;
+
+            Object.keys(SCHEMA_DEFS).forEach(tName => {
+                const def = SCHEMA_DEFS[tName];
+                const colDefs = def.columns.map(c => `    ${c.name} ${c.type}${c.key === 'PK' ? ' PRIMARY KEY' : c.key === 'NOT NULL' ? ' NOT NULL' : ''}`);
+                sqlOut += `CREATE TABLE ${tName} (\n${colDefs.join(',\n')}\n);\n\n`;
+
+                DB[tName].forEach(row => {
+                    const colNames = def.columns.map(c => c.name);
+                    const vals = colNames.map(c => {
+                        const v = row[c];
+                        return typeof v === 'number' ? v : `'${String(v ?? '').replace(/'/g, "''")}'`;
+                    });
+                    sqlOut += `INSERT INTO ${tName} (${colNames.join(', ')}) VALUES (${vals.join(', ')});\n`;
+                });
+                sqlOut += `\n`;
+            });
+
+            PRESET_SQL_LIST.slice(0, 6).forEach(q => {
+                sqlOut += `-- ${q.title}\n${q.sql}\n\n`;
+            });
+
+            const blob = new Blob([sqlOut], { type: 'text/sql' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'COSMOS_DB_3NF_8Tables.sql';
+            a.click();
+            showToast('Exported COSMOS_DB_3NF_8Tables.sql');
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast-banner');
+            document.getElementById('toast-text').textContent = msg;
+            t.classList.remove('hidden');
+            setTimeout(() => t.classList.add('hidden'), 2800);
+        }
+
+        function attachCardTilt() {
+            document.querySelectorAll('.tilt-interactive').forEach(card => {
+                card.onmousemove = e => {
+                    const r = card.getBoundingClientRect();
+                    const x = (e.clientX - r.left) / r.width - 0.5;
+                    const y = (e.clientY - r.top) / r.height - 0.5;
+                    card.style.transform = `perspective(900px) rotateY(${x * 6}deg) rotateX(${-y * 6}deg) translateY(-2px)`;
+                };
+                card.onmouseleave = () => {
+                    card.style.transform = 'perspective(900px) rotateY(0deg) rotateX(0deg) translateY(0px)';
+                };
+            });
+        }
+
+        function refreshAllSections() {
+            renderBottomModelDock();
+            renderCatalogGrid('ALL');
+            renderMissionsGrid('ALL');
+            renderPioneersGrid();
+            renderStudioControls();
+        }
+
+        window.onload = function () {
+            syncRelationalEngine();
+            refreshAllSections();
+            initThreeStage();
+            document.getElementById('sql-editor').value = PRESET_SQL_LIST[0].sql;
+            runCustomSql();
+
+            document.getElementById('sql-editor').addEventListener('keydown', e => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    runCustomSql();
+                }
+            });
+        };
+    </script>
+</body>
+</html>
